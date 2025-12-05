@@ -1,0 +1,213 @@
+---
+title: Ratings
+jupyter: python3
+---
+
+```{python}
+import pandas as pd
+import numpy as np
+from statsmodels.stats.anova import AnovaRM
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+```
+
+```{python}
+def format_marks(session):
+    """Format marks data for a given session"""
+    # Read the file with violin's marks
+    df = pd.read_csv(
+        f"/home/hugo/Thèse/playing-in/data/raw/CNSM/Ouverture par le jeu/notes/Liste participant⋅es - Session {session}.csv"
+    )
+
+    # Drop unnecessary columns
+    df = df.drop(
+        [
+            "Jour",
+            "Horaire",
+            "Ord 1",
+            "Ord 2",
+            "Rq A",
+            "Rq B",
+            "Rq C",
+            "Rq D",
+            "Rq E",
+            "Unnamed: 26",
+        ],
+        axis="columns",
+    )
+
+    # Split columns name for A.P A.F ...
+    columns_split = np.array([col.split(".") for col in df.columns[2:]])
+    tiles = np.tile(columns_split, (len(df), 1))
+
+    # Create a new dataframe with splitted columns as values
+    df_long = pd.DataFrame(tiles, columns=["Violon", "Critère"])
+
+    # Create a new dataframe with splitted columns as values
+    df_long["Note"] = df.iloc[:, 2:].values.flatten()
+    df_long["Condition"] = "aveugle"
+    df_long["Sujet"] = df["Nom"].repeat(len(df.columns) - 2).values
+    df_long["Session"] = session
+
+    # Handle non-blind conditions
+    df_long.loc[df_long["Violon"] == "D", ["Condition", "Violon"]] = [
+        "non-aveugle",
+        "A",
+    ]
+    df_long.loc[df_long["Violon"] == "E", ["Condition", "Violon"]] = [
+        "non-aveugle",
+        "C",
+    ]
+
+    # df_long.to_csv(f"session{session}.csv")
+
+    return df_long
+
+
+df_sessions = [format_marks(i) for i in [1, 2, 3]]
+df = pd.concat(df_sessions, ignore_index=True)
+df["Phase"] = df.apply(lambda row: 2 if row["Session"] == 3 else 1, axis=1)
+df = df.replace({"A": "Klimke", "B": "Levaggi", "C": "Stoppani"})
+df.to_csv("../data/processed/sessions.csv")
+df.head()
+```
+
+## Plots
+
+```{python}
+df_all = df.copy()
+df_all["Scope"] = "All"
+
+df_smd = df[df["Sujet"] == "SMD"].copy()
+df_smd["Scope"] = "SMD"
+
+plot_df = pd.concat([df_all, df_smd], axis=0, ignore_index=True)
+
+mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+
+sns.catplot(
+    plot_df,
+    x="Scope",
+    y="Note",
+    hue="Phase",
+    row="Violon",
+    col="Critère",
+    kind="point",
+    linestyle="none",
+    errorbar=("ci", 95),
+    estimator="mean",
+    palette="tab10",
+    margin_titles=True,
+    dodge=True,
+)
+plt.savefig("../reports/figures/ratings.png")
+```
+
+```{python}
+def ci(a):
+    """calculate confidence interval using Wikipedia's formula"""
+    m = np.mean(a)
+    s = 1.96 * np.std(a) / np.sqrt(len(a))
+    return m - s, m + s
+
+
+sns.set_theme(style="whitegrid")
+mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+
+# 1. Initialize the Grid
+g = sns.FacetGrid(
+    data=plot_df,
+    row="Violon",
+    col="Critère",
+    margin_titles=True,
+    # height=8,
+    # aspect=1.2,
+)
+
+g.map(
+    sns.stripplot,
+    "Scope",
+    "Note",
+    "Phase",
+    dodge=True,
+    alpha=0.4,
+    palette="tab10",
+    order=["All", "SMD"],
+    hue_order=[1, 2],
+)
+
+g.map(
+    sns.pointplot,
+    "Scope",
+    "Note",
+    "Phase",
+    errorbar=ci,
+    estimator="mean",
+    dodge=0.4,
+    linestyle="none",
+    palette="tab10",
+    order=["All", "SMD"],
+    hue_order=[1, 2],
+)
+
+g.add_legend(title="Phase")
+g.set_axis_labels("Scope", "Rating (0-10)")
+
+g.set_titles(col_template="{col_name}", row_template="{row_name}")
+plt.savefig("../reports/figures/ratings.png")
+```
+
+## Statistical Test
+
+```{python}
+df = df[(df.Condition == "aveugle") & (df.Violon == "A") & (df.Session != 2)]
+
+# Delete empty rows
+df = df[df["Note"] > 0]
+
+# Keep only subjects who participated in all sessions
+sujets1 = set(df.query("Session==1")["Sujet"])
+sujets2 = set(df.query("Session==3")["Sujet"])
+sujets3 = set(df.query("Session==3")["Sujet"])
+df = df[df["Sujet"].isin(sujets1.intersection(sujets2, sujets3))]
+
+# Delete third violin
+# df = df[df.Violon != "C"]
+# df.to_csv(f"session.csv")
+
+print(df["Sujet"].value_counts())
+
+# Define the relevant factors
+factors = ["Critère", "Session"]
+
+# For each factor, list the unique levels and the count of occurrences for each level
+factor_levels = {factor: df[factor].value_counts() for factor in factors}
+
+# Display the shape of each level
+for factor, levels in factor_levels.items():
+    print(f"Factor: {factor}")
+    print(levels)
+    print("\n")
+
+
+# Définir l'ANOVA répétée
+anova = AnovaRM(df, "Note", "Sujet", within=factors)
+
+# Compute ANOVA
+resultats = anova.fit()
+resultats.anova_table = np.round(resultats.anova_table, 3)
+resultats.anova_table["Num DF"] = resultats.anova_table["Num DF"].astype("int")
+resultats.anova_table["Den DF"] = resultats.anova_table["Den DF"].astype("int")
+
+# Afficher les résultats
+print(resultats.anova_table)
+
+resultats.anova_table.to_html("reports/anova.html", justify="unset", border=0)
+
+# anova = pg.anova(data=df, dv='Note', between=['Session', 'Condition', 'Violon', 'Critère'], ss_type=2).round(3)
+# anova = anova.set_index('Source')
+# anova.to_html('anova.html', justify='unset', float_format='{:10.2f}'.format, border=0)
+# print(anova)
+```
+

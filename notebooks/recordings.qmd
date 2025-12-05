@@ -41,7 +41,6 @@ f = np.linspace(0, config["sr"] // 2, n_features)
 
 ds = xr.Dataset(
     data_vars={
-        # The main data block
         "features": (["measurement", "frequency"], feature_matrix),
     },
     coords={
