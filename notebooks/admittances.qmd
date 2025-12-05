@@ -1,0 +1,123 @@
+---
+title: Admittances plots
+jupyter: python3
+---
+
+```{python}
+%matplotlib ipympl
+import pathlib
+import numpy as np
+import scipy
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import xarray as xr
+```
+
+```{python}
+DATA_DIR = pathlib.Path("../data/raw/CNSM/")
+SR = 51200
+N_FFT = 32768
+CALIBRATION_X = 1 / (20.41 / 1000)  # mv/N
+CALIBRATION_Y = 125 / 1000  # mm/S / V
+
+sessions = [1, 3]
+violins = ["Klimke", "Levaggi", "Stoppani"]
+
+
+def process_file(filepath):
+    try:
+        mat = scipy.io.loadmat(filepath)
+    except Exception as e:
+        print(f"Error loading {filepath}: {e}")
+        return None
+
+    sr = mat["freq"][0, 0]
+    n_fft = mat["npts"][0, 0]
+
+    if n_fft != N_FFT or sr != SR:
+        return None
+
+    X_raw = mat["yspec"][:, 1]
+    Y_raw = mat["yspec"][:, 0]
+
+    X_cal = X_raw * CALIBRATION_X
+    Y_cal = Y_raw * CALIBRATION_Y
+
+    f = np.linspace(0, sr // 2, n_fft // 2 + 1)
+
+    H_linear = np.abs(Y_cal / X_cal)
+    H_db = 20 * np.log10(H_linear)
+
+    ds = xr.Dataset(
+        data_vars={
+            "H_db": (["frequency"], H_db),
+        },
+        coords={
+            "frequency": f,
+            "violin": violin,
+            "session": session,
+            "filename": filepath.name,
+        },
+    )
+
+    return ds.expand_dims("measurement")
+
+
+dataset = []
+for session in sessions:
+    for violin in violins:
+        path = DATA_DIR / f"Session {session}" / "Admittances"
+        file_paths = path.glob(f"*{violin}*.mat")
+        for file_path in file_paths:
+            ds_entry = process_file(file_path)
+            if ds_entry is not None:
+                dataset.append(ds_entry)
+
+dataset = xr.concat(dataset, dim="measurement", coords="different")
+print(dataset.head())
+```
+
+
+
+```{python}
+mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+
+mean = dataset["H_db"].groupby(["violin", "session"]).mean(dim="measurement")
+std = dataset["H_db"].groupby(["violin", "session"]).std(dim="measurement")
+
+grid = mean.plot.line(
+    x="frequency",
+    row="violin",
+    hue="session",
+    figsize=(5, 5),
+    sharex=True,
+    xscale="log",
+    xlim=[200, 5000],
+    ylim=[-50, -10],
+)
+
+for ax, (violin, sub_da) in zip(grid.axs.flat, mean.groupby("violin")):
+    title_suffix = "(Test)" if violin == "Klimke" else "(Control)"
+    ax.set_title(f"{violin} {title_suffix}")
+    for session in [1, 3]:
+        m = mean.sel(violin=violin, session=session)
+        s = std.sel(violin=violin, session=session)
+
+        ax.fill_between(m.frequency, m - s, m + s, alpha=0.2)
+grid.set_axis_labels("Frequency (Hz)", "Amplitude (dB)")
+plt.show()
+```
+
+## Euclidean distances between admittances
+
+```{python}
+print(f"{'Violin':<10} | {'Euclidean Distance':<15}")
+print("-" * 30)
+freq_mask = slice(190, 5000)
+for violin in ["Klimke", "Levaggi", "Stoppani"]:
+    before = mean.sel(violin=violin, session=1, frequency=freq_mask)
+    after = mean.sel(violin=violin, session=3, frequency=freq_mask)
+    dist = np.linalg.norm(after - before)
+    print(f"{violin:<10} | {dist:.4f}")
+```
+
