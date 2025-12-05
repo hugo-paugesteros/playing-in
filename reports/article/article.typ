@@ -127,7 +127,7 @@ Before recordings, rate each violin based on 3 criteria :
 
 == Subjective Violin Ratings
 #figure(
-    image("../figures/marks.png", width: 80%),
+    image("../figures/ratings.png", width: 80%),
     caption: [Subjective ratings of the three violins before and after the playing phase.],
 ) <fig:ratings>
 
