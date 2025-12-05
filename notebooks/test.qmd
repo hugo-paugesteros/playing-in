@@ -1,0 +1,122 @@
+---
+jupyter: python3
+title: Listening test
+---
+
+```{python}
+import json
+import pandas as pd
+from IPython.display import display
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import numpy as np
+import seaborn as sns
+import pathlib
+```
+
+```{python}
+ROOT = pathlib.Path("/home/hugo/Thèse/listening-tests/resultats/")
+filenames = ROOT.glob("*.json")
+
+
+def parse(filename):
+    filename = filename[:-4]
+    return filename.split("-")
+
+
+rows = []
+
+for filename in filenames:
+    listener = filename.stem
+    with open(filename, "r") as file:
+        data = json.load(file)
+        for entry in data:
+            distance = entry["result"]
+            id = entry["test"]["id"]
+            a = entry["test"]["a"]
+            b = entry["test"]["b"]
+
+            (violin_a, player_a, session_a) = parse(a)
+            (violin_b, player_b, session_b) = parse(b)
+
+            row = {
+                "test_id": id,
+                "listener": listener,
+                "violin_a": violin_a,
+                "player_a": player_a,
+                "session_a": session_a,
+                "violin_b": violin_b,
+                "player_b": player_b,
+                "session_b": session_b,
+                "distance": distance,
+            }
+            rows.append(row)
+
+df = pd.DataFrame(rows)
+df = df.sort_values(by=["listener", "test_id"])
+df = df.replace({"A": "Klimke", "B": "Levaggi", "C": "Stoppani"})
+df.head()
+```
+
+```{python}
+plot_df = df.copy()
+plot_df["session_a"] = df["session_a"].str.replace("na", "")
+plot_df["session_b"] = df["session_b"].str.replace("na", "")
+plot_df = plot_df[
+    (df.player_a == df.player_b)
+    & (df.violin_a == df.violin_b)
+    & (~df.listener.isin(["Celeste", "Félix", "Norimi"]))
+    & (plot_df.session_a != plot_df.session_b)
+]
+
+plot_df["phase_a"] = df.apply(
+    lambda row: "2" if row["session_a"] == "3" else "1", axis=1
+)
+plot_df["phase_b"] = df.apply(
+    lambda row: "2" if row["session_b"] == "3" else "1", axis=1
+)
+char_a = plot_df["phase_a"]
+char_b = plot_df["phase_b"]
+plot_df["test"] = np.minimum(char_a, char_b) + np.maximum(char_a, char_b)
+
+plot_df = plot_df.sort_values(by=["listener", "test_id"])
+
+plot_df = plot_df.pivot_table(
+    index=["listener", "violin_a", "player_a"],
+    columns="test",
+    values="distance",
+)
+
+
+plot_df["diff"] = plot_df["12"] - plot_df["11"]
+display(plot_df.iloc[:12])
+```
+
+```{python}
+mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+
+
+def ci(a):
+    """calculate confidence interval using Wikipedia's formula"""
+    m = np.mean(a)
+    s = 1.96 * np.std(a) / np.sqrt(len(a))
+    return m - s, m + s
+
+
+g = sns.catplot(
+    data=plot_df,
+    x="player_a",
+    y="diff",
+    row="violin_a",
+    kind="point",
+    estimator="mean",
+    errorbar=ci,
+    margin_titles=True,
+    height=4,
+    linestyle="none",
+)
+g.set_axis_labels("Player", "$\\Delta_{31} - \\Delta_{21}$")
+g.set_titles(col_template="{col_name}", row_template="{row_name}")
+plt.savefig("../reports/figures/tests.png")
+```
+
