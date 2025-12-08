@@ -11,10 +11,11 @@ import scipy
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import xarray as xr
+import shutil
 ```
 
 ```{python}
-DATA_DIR = pathlib.Path("../data/raw/CNSM/")
+DATA_DIR = pathlib.Path("../data/_raw/CNSM/")
 SR = 51200
 N_FFT = 32768
 CALIBRATION_X = 1 / (20.41 / 1000)  # mv/N
@@ -43,9 +44,9 @@ def process_file(filepath):
     X_cal = X_raw * CALIBRATION_X
     Y_cal = Y_raw * CALIBRATION_Y
 
-    f = np.linspace(0, sr // 2, n_fft // 2 + 1)
+    f = np.linspace(0, sr // 2, n_fft // 2 + 1).astype(np.float32)
 
-    H_linear = np.abs(Y_cal / X_cal)
+    H_linear = np.abs(Y_cal / X_cal).astype(np.float32)
     H_db = 20 * np.log10(H_linear)
 
     ds = xr.Dataset(
@@ -68,13 +69,17 @@ for session in sessions:
     for violin in violins:
         path = DATA_DIR / f"Session {session}" / "Admittances"
         file_paths = path.glob(f"*{violin}*.mat")
-        for file_path in file_paths:
+        for i, file_path in enumerate(file_paths):
             ds_entry = process_file(file_path)
             if ds_entry is not None:
+                dst = f"../data/raw/phase_{session}/{violin.lower()}/admittances/measurement_{i+1}.mat"
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy(file_path, dst)
                 dataset.append(ds_entry)
 
 dataset = xr.concat(dataset, dim="measurement", coords="different")
-print(dataset.head())
+dataset.to_netcdf("../data/processed/admittances.nc")
+dataset
 ```
 
 

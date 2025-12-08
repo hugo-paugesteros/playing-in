@@ -10,6 +10,8 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import xarray as xr
+import soundfile as sf
+import librosa
 
 import identification.dataset
 ```
@@ -30,6 +32,18 @@ data = data[(data.violin.isin(["A", "B", "C"]))]
 data = data[data.session.isin([1, 3])]
 data = data[data.extract == "gamme"]
 data.violin = data.violin.map({"A": "Klimke", "B": "Levaggi", "C": "Stoppani"})
+
+for row in data.itertuples():
+    y, sr = librosa.load(
+        row.file,
+        sr=None,
+        offset=row.start,
+        duration=row.end - row.start,
+    )
+    y = (y * 32767).astype(np.int16)
+    dst = f"../data/raw/phase_{row.session}/{row.violin.lower()}/recordings/{row.extract}-{row[0]}.flac"
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    sf.write(dst, y, sr)
 
 df = identification.dataset.get_dataset(config, data)
 ```
@@ -56,6 +70,7 @@ ds = xr.Dataset(
         "filepath": (["measurement"], df["file"]),
     },
 )
+ds.to_netcdf("../data/processed/recordings.nc")
 ds
 ```
 
