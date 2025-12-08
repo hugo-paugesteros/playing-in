@@ -61,8 +61,6 @@ ds = xr.Dataset(
         "measurement": df.index,
         "frequency": f,
         "violin": (["measurement"], df["violin"]),
-        "condition": (["measurement"], df["condition"]),
-        "player": (["measurement"], df["player"]),
         "session": (["measurement"], df["session"]),
         "extract": (["measurement"], df["extract"]),
         "start_time": (["measurement"], df["start"]),

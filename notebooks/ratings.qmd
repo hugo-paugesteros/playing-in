@@ -17,7 +17,7 @@ def format_marks(session):
     """Format marks data for a given session"""
     # Read the file with violin's marks
     df = pd.read_csv(
-        f"/home/hugo/Thèse/playing-in/data/raw/CNSM/Ouverture par le jeu/notes/Liste participant⋅es - Session {session}.csv"
+        f"/home/hugo/Thèse/Data/CNSM/Ouverture par le jeu/notes/Liste participant⋅es - Session {session}.csv"
     )
 
     # Drop unnecessary columns
@@ -42,57 +42,53 @@ def format_marks(session):
     tiles = np.tile(columns_split, (len(df), 1))
 
     # Create a new dataframe with splitted columns as values
-    df_long = pd.DataFrame(tiles, columns=["Violon", "Critère"])
+    df_long = pd.DataFrame(tiles, columns=["violin", "criterion"])
 
     # Create a new dataframe with splitted columns as values
-    df_long["Note"] = df.iloc[:, 2:].values.flatten()
-    df_long["Condition"] = "aveugle"
-    df_long["Sujet"] = df["Nom"].repeat(len(df.columns) - 2).values
-    df_long["Session"] = session
+    df_long["rating"] = df.iloc[:, 2:].values.flatten()
+    df_long["condition"] = "blind"
+    df_long["player"] = df["Nom"].repeat(len(df.columns) - 2).values
+    df_long["session"] = session
 
     # Handle non-blind conditions
-    df_long.loc[df_long["Violon"] == "D", ["Condition", "Violon"]] = [
-        "non-aveugle",
+    df_long.loc[df_long["violin"] == "D", ["condition", "violin"]] = [
+        "non-blind",
         "A",
     ]
-    df_long.loc[df_long["Violon"] == "E", ["Condition", "Violon"]] = [
-        "non-aveugle",
+    df_long.loc[df_long["violin"] == "E", ["condition", "violin"]] = [
+        "non-blind",
         "C",
     ]
-
-    # df_long.to_csv(f"session{session}.csv")
 
     return df_long
 
 
 df_sessions = [format_marks(i) for i in [1, 2, 3]]
 df = pd.concat(df_sessions, ignore_index=True)
-df["Phase"] = df.apply(lambda row: 2 if row["Session"] == 3 else 1, axis=1)
+df["phase"] = df.apply(lambda row: 2 if row["session"] == 3 else 1, axis=1)
 df = df.replace({"A": "Klimke", "B": "Levaggi", "C": "Stoppani"})
-df.to_csv("../data/processed/sessions.csv")
+df["scope"] = df.apply(
+    lambda row: "test" if row["player"] == "SMD" else "control", axis=1
+)
+df["player"] = df["player"].apply(hash)
+df.to_csv("../data/processed/ratings.csv")
 df.head()
 ```
 
 ## Plots
 
 ```{python}
-df_all = df.copy()
-df_all["Scope"] = "All"
-
-df_smd = df[df["Sujet"] == "SMD"].copy()
-df_smd["Scope"] = "SMD"
-
-plot_df = pd.concat([df_all, df_smd], axis=0, ignore_index=True)
+df = pd.read_csv("../data/processed/ratings.csv")
 
 mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
 
 sns.catplot(
-    plot_df,
-    x="Scope",
-    y="Note",
-    hue="Phase",
-    row="Violon",
-    col="Critère",
+    df,
+    x="scope",
+    y="rating",
+    hue="phase",
+    row="violin",
+    col="criterion",
     kind="point",
     linestyle="none",
     errorbar=("ci", 95),
@@ -117,9 +113,9 @@ mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
 
 # 1. Initialize the Grid
 g = sns.FacetGrid(
-    data=plot_df,
-    row="Violon",
-    col="Critère",
+    data=df,
+    row="violin",
+    col="criterion",
     margin_titles=True,
     # height=8,
     # aspect=1.2,
@@ -127,27 +123,27 @@ g = sns.FacetGrid(
 
 g.map(
     sns.stripplot,
-    "Scope",
-    "Note",
-    "Phase",
+    "scope",
+    "rating",
+    "phase",
     dodge=True,
     alpha=0.4,
     palette="tab10",
-    order=["All", "SMD"],
+    order=["control", "test"],
     hue_order=[1, 2],
 )
 
 g.map(
     sns.pointplot,
-    "Scope",
-    "Note",
-    "Phase",
+    "scope",
+    "rating",
+    "phase",
     errorbar=ci,
     estimator="mean",
     dodge=0.4,
     linestyle="none",
     palette="tab10",
-    order=["All", "SMD"],
+    order=["control", "test"],
     hue_order=[1, 2],
 )
 
