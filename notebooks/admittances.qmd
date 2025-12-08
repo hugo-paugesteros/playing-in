@@ -85,11 +85,12 @@ dataset
 
 
 ```{python}
-mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+dataset = xr.open_dataset("../data/processed/admittances.nc")
 
 mean = dataset["H_db"].groupby(["violin", "session"]).mean(dim="measurement")
 std = dataset["H_db"].groupby(["violin", "session"]).std(dim="measurement")
 
+mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
 grid = mean.plot.line(
     x="frequency",
     row="violin",

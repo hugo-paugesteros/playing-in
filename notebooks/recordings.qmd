@@ -73,11 +73,12 @@ ds
 ```
 
 ```{python}
-mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+ds = xr.open_dataset("../data/processed/recordings.nc")
 
 mean = ds["features"].groupby(["violin", "session"]).mean(dim="measurement")
 std = ds["features"].groupby(["violin", "session"]).std(dim="measurement")
 
+mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
 grid = mean.plot.line(
     x="frequency",
     row="violin",

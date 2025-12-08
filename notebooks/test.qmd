@@ -15,7 +15,7 @@ import pathlib
 ```
 
 ```{python}
-ROOT = pathlib.Path("/home/hugo/Thèse/listening-tests/resultats/")
+ROOT = pathlib.Path("../data/raw/listening_test/")
 filenames = ROOT.glob("*.json")
 
 
@@ -25,7 +25,6 @@ def parse(filename):
 
 
 rows = []
-
 for filename in filenames:
     listener = filename.stem
     with open(filename, "r") as file:
@@ -65,7 +64,6 @@ plot_df["session_b"] = df["session_b"].str.replace("na", "")
 plot_df = plot_df[
     (df.player_a == df.player_b)
     & (df.violin_a == df.violin_b)
-    & (~df.listener.isin(["Celeste", "Félix", "Norimi"]))
     & (plot_df.session_a != plot_df.session_b)
 ]
 
@@ -87,27 +85,28 @@ plot_df = plot_df.pivot_table(
     values="distance",
 )
 
-
 plot_df["diff"] = plot_df["12"] - plot_df["11"]
+plot_df.index.names = ["listener", "violin", "player"]
+plot_df.to_csv("../data/processed/listening_test.csv")
 display(plot_df.iloc[:12])
 ```
 
 ```{python}
-mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+plot_df = pd.read_csv("../data/processed/listening_test.csv")
 
 
 def ci(a):
-    """calculate confidence interval using Wikipedia's formula"""
     m = np.mean(a)
     s = 1.96 * np.std(a) / np.sqrt(len(a))
     return m - s, m + s
 
 
+mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
 g = sns.catplot(
     data=plot_df,
-    x="player_a",
+    x="player",
     y="diff",
-    row="violin_a",
+    row="violin",
     kind="point",
     estimator="mean",
     errorbar=ci,
