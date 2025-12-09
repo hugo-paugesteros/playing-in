@@ -1,0 +1,242 @@
+[
+    [
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": 1
+        },
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": 2
+        }
+    ],
+    [
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": 1
+        },
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": 3
+        }
+    ],
+    [
+        {
+            "player": "SMD",
+            "violin": "B",
+            "session": 1
+        },
+        {
+            "player": "SMD",
+            "violin": "B",
+            "session": 2
+        }
+    ],
+    [
+        {
+            "player": "SMD",
+            "violin": "B",
+            "session": 1
+        },
+        {
+            "player": "SMD",
+            "violin": "B",
+            "session": 3
+        }
+    ],
+    [
+        {
+            "player": "SMD",
+            "violin": "C",
+            "session": 1
+        },
+        {
+            "player": "SMD",
+            "violin": "C",
+            "session": 2
+        }
+    ],
+    [
+        {
+            "player": "SMD",
+            "violin": "C",
+            "session": 1
+        },
+        {
+            "player": "SMD",
+            "violin": "C",
+            "session": 3
+        }
+    ],
+    [
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": 3
+        },
+        {
+            "player": "SMD",
+            "violin": "B",
+            "session": 3
+        }
+    ],
+    [
+        {
+            "player": "SMD",
+            "violin": "C",
+            "session": 1
+        },
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": 1
+        }
+    ],
+    [
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": 1
+        },
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": "1na"
+        }
+    ],
+    [
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": 2
+        },
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": 2
+        }
+    ],
+    [
+        {
+            "player": "Norimi",
+            "violin": "A",
+            "session": 1
+        },
+        {
+            "player": "Norimi",
+            "violin": "A",
+            "session": 2
+        }
+    ],
+    [
+        {
+            "player": "Norimi",
+            "violin": "A",
+            "session": 1
+        },
+        {
+            "player": "Norimi",
+            "violin": "A",
+            "session": 3
+        }
+    ],
+    [
+        {
+            "player": "Norimi",
+            "violin": "B",
+            "session": 1
+        },
+        {
+            "player": "Norimi",
+            "violin": "B",
+            "session": 2
+        }
+    ],
+    [
+        {
+            "player": "Norimi",
+            "violin": "B",
+            "session": 2
+        },
+        {
+            "player": "Norimi",
+            "violin": "B",
+            "session": 3
+        }
+    ],
+    [
+        {
+            "player": "Norimi",
+            "violin": "C",
+            "session": 1
+        },
+        {
+            "player": "Norimi",
+            "violin": "C",
+            "session": 2
+        }
+    ],
+    [
+        {
+            "player": "Norimi",
+            "violin": "C",
+            "session": 2
+        },
+        {
+            "player": "Norimi",
+            "violin": "C",
+            "session": 3
+        }
+    ],
+    [
+        {
+            "player": "Norimi",
+            "violin": "A",
+            "session": 1
+        },
+        {
+            "player": "Norimi",
+            "violin": "B",
+            "session": 1
+        }
+    ],
+    [
+        {
+            "player": "Norimi",
+            "violin": "C",
+            "session": 1
+        },
+        {
+            "player": "Norimi",
+            "violin": "A",
+            "session": 1
+        }
+    ],
+    [
+        {
+            "player": "Norimi",
+            "violin": "A",
+            "session": 2
+        },
+        {
+            "player": "Norimi",
+            "violin": "A",
+            "session": "2na"
+        }
+    ],
+    [
+        {
+            "player": "SMD",
+            "violin": "A",
+            "session": 1
+        },
+        {
+            "player": "Norimi",
+            "violin": "A",
+            "session": 1
+        }
+    ]
+]

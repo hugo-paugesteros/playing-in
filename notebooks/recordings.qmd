@@ -99,7 +99,7 @@ for ax, (violin, sub_da) in zip(grid.axs.flat, mean.groupby("violin")):
 
         ax.fill_between(m.frequency, m - s, m + s, alpha=0.2)
 grid.set_axis_labels("Frequency (Hz)", "Amplitude (dB)")
-plt.savefig("../reports/figures/ltas.png")
+plt.savefig("../reports/figures/ltas.svg")
 plt.show()
 ```
 

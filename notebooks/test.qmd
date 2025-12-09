@@ -15,6 +15,18 @@ import pathlib
 ```
 
 ```{python}
+VIOLINS = {"A": "Klimke", "B": "Levaggi", "C": "Stoppani"}
+with open("../data/raw/test.json", "r") as file:
+    test = json.load(file)
+    for i, (stimuli1, stimuli2) in enumerate(test):
+        v1 = VIOLINS[stimuli1["violin"]]
+        v2 = VIOLINS[stimuli2["violin"]]
+        print(
+            f"[{i+1}], [{v1}], [{stimuli1['player']}], [{stimuli1['session']}], [{v2}], [{stimuli2['player']}], [{stimuli2['session']}],"
+        )
+```
+
+```{python}
 ROOT = pathlib.Path("../data/raw/listening_test/")
 filenames = ROOT.glob("*.json")
 
@@ -101,21 +113,24 @@ def ci(a):
     return m - s, m + s
 
 
+WIDTH = 6.5 / 3
+RATIO = 1.3
 mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
 g = sns.catplot(
     data=plot_df,
     x="player",
     y="diff",
-    row="violin",
+    col="violin",
     kind="point",
     estimator="mean",
     errorbar=ci,
     margin_titles=True,
-    height=4,
+    height=WIDTH / RATIO,
+    aspect=RATIO,
     linestyle="none",
 )
 g.set_axis_labels("Player", "$\\Delta_{31} - \\Delta_{21}$")
 g.set_titles(col_template="{col_name}", row_template="{row_name}")
-plt.savefig("../reports/figures/tests.png")
+plt.savefig("../reports/figures/tests.svg", dpi=600)
 ```
 
