@@ -144,8 +144,6 @@ Before recordings, rate each violin based on 3 criteria :
   caption: [List of presented pairs in the listening test],
 )<t:pairs>
 
-
-
 = Results
 
 == Admittances Measurements

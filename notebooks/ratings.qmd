@@ -97,7 +97,7 @@ sns.catplot(
     margin_titles=True,
     dodge=True,
 )
-plt.savefig("../reports/figures/ratings.png")
+plt.savefig("../reports/figures/ratings.svg")
 ```
 
 ```{python}
