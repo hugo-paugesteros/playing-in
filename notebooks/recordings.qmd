@@ -61,6 +61,7 @@ ds = xr.Dataset(
         "measurement": df.index,
         "frequency": f,
         "violin": (["measurement"], df["violin"]),
+        "player": (["measurement"], df["player"]),
         "session": (["measurement"], df["session"]),
         "extract": (["measurement"], df["extract"]),
         "start_time": (["measurement"], df["start"]),
@@ -75,7 +76,15 @@ ds
 ```{python}
 ds = xr.open_dataset("../data/processed/recordings.nc")
 
-mean = ds["features"].groupby(["violin", "session"]).mean(dim="measurement")
+f_lin = 10 ** (ds["features"] / 20)
+mean = (f_lin).groupby(["violin", "session"]).mean(dim="measurement")
+mean = 20 * np.log10(mean)
+
+# Normalization
+loudness_offset = mean.mean(dim="frequency")
+mean = mean - loudness_offset
+
+# mean = ds["features"].groupby(["violin", "session"]).mean(dim="measurement")
 std = ds["features"].groupby(["violin", "session"]).std(dim="measurement")
 
 mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
@@ -87,7 +96,24 @@ grid = mean.plot.line(
     sharex=True,
     xscale="log",
     xlim=[200, 5000],
-    ylim=[-80, -10],
+    ylim=[-15, 50],
+)
+
+mean_smd = (
+    f_lin.where(f_lin.player == "SMD", drop=True)
+    .groupby(["violin", "session"])
+    .mean(dim="measurement")
+)
+mean_smd = 20 * np.log10(mean)
+grid2 = mean_smd.plot.line(
+    x="frequency",
+    row="violin",
+    hue="session",
+    figsize=(5, 5),
+    sharex=True,
+    xscale="log",
+    xlim=[200, 5000],
+    ylim=[-15, 50],
 )
 
 for ax, (violin, sub_da) in zip(grid.axs.flat, mean.groupby("violin")):
@@ -99,7 +125,111 @@ for ax, (violin, sub_da) in zip(grid.axs.flat, mean.groupby("violin")):
 
         ax.fill_between(m.frequency, m - s, m + s, alpha=0.2)
 grid.set_axis_labels("Frequency (Hz)", "Amplitude (dB)")
+plt.savefig("../reports/figures/ltas.png")
 plt.savefig("../reports/figures/ltas.svg")
+plt.show()
+```
+
+```{python}
+# Load data
+ds = xr.open_dataset("../data/processed/recordings.nc")
+
+# 1. GLOBAL PRE-PROCESSING
+# Convert to linear scale for correct averaging
+f_lin = 10 ** (ds["features"] / 20)
+
+# --- A. Calculate Mean for ALL PLAYERS ---
+mean_all = f_lin.groupby(["violin", "session"]).mean(dim="measurement")
+mean_all = 20 * np.log10(mean_all)
+
+# Normalize (All Players)
+loudness_offset_all = mean_all.mean(dim="frequency")
+mean_all = mean_all - loudness_offset_all
+
+# --- B. Calculate Mean for PLAYER 'SMD' ---
+# Select SMD data first
+f_lin_smd = f_lin.where(ds.player == "SMD", drop=True)
+mean_smd = f_lin_smd.groupby(["violin", "session"]).mean(dim="measurement")
+mean_smd = 20 * np.log10(mean_smd)
+
+# Normalize (SMD) - ensuring comparable offsets
+loudness_offset_smd = mean_smd.mean(dim="frequency")
+mean_smd = mean_smd - loudness_offset_smd
+
+# 2. PLOTTING
+mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+
+# Step 1: Plot 'All Players' using xarray to setup the FacetGrid
+# We use solid lines for the group average
+grid = mean_all.plot.line(
+    x="frequency",
+    row="violin",
+    hue="session",
+    figsize=(6, 5),  # Slightly wider to accommodate legend if needed
+    sharex=True,
+    xscale="log",
+    xlim=[200, 5000],
+    ylim=[-15, 50],
+    linewidth=1,
+    add_legend=False,  # We will build a custom legend
+)
+
+# Step 2: Overlay 'SMD' curves manually
+# We iterate through the axes and plot the corresponding SMD data
+# We assume Session 1 = C0 (Blue) and Session 3 = C1 (Orange) to match xarray defaults
+colors = {1: "C0", 3: "C1"}
+
+for ax, (violin, _) in zip(grid.axs.flat, mean_all.groupby("violin")):
+    # Custom Title
+    title_suffix = "(Test)" if violin == "Klimke" else "(Control)"
+    ax.set_title(f"{violin} {title_suffix}")
+
+    # Plot SMD Data
+    # Iterate through sessions to ensure we match colors correctly
+    for session in [1, 3]:
+        # Select data for this specific violin and session
+        try:
+            curve = mean_smd.sel(violin=violin, session=session)
+
+            # Plot with DASHED line to distinguish from the group mean
+            ax.plot(
+                curve.frequency,
+                curve,
+                color=colors[session],
+                linestyle="dotted",
+                linewidth=1,
+                alpha=0.9,
+                label=f"SMD Sess {session}",  # Label for reference
+            )
+        except KeyError:
+            print(f"Missing data for {violin} Session {session}")
+
+# 3. FINAL FORMATTING
+grid.set_axis_labels("Frequency (Hz)", "Amplitude (dB)")
+
+# Create a custom legend to explain the Line Styles and Colors
+from matplotlib.lines import Line2D
+
+legend_elements = [
+    # Colors for Sessions
+    Line2D([0], [0], color="C0", lw=2, label="Session 1"),
+    Line2D([0], [0], color="C1", lw=2, label="Session 3"),
+    # Styles for Players
+    Line2D([0], [0], color="gray", lw=2, linestyle="-", label="All Players"),
+    Line2D([0], [0], color="gray", lw=2, linestyle="--", label="Player SMD"),
+]
+
+# Place legend on the figure
+grid.fig.legend(
+    handles=legend_elements,
+    loc="upper center",
+    # bbox_to_anchor=(0.5, 1.05),
+    ncol=4,
+    frameon=False,
+)
+
+plt.tight_layout()
+# plt.savefig("../reports/figures/ltas_comparison.png")
 plt.show()
 ```
 
@@ -114,3 +244,86 @@ for violin in ["Klimke", "Levaggi", "Stoppani"]:
     print(f"{violin:<10} | {dist:.4f}")
 ```
 
+---------------------
+
+
+```{python}
+dataset = xr.open_dataset(dataset_path)
+features_lin = 10 ** (dataset["features"] / 20).sel(frequency=slice(200, 5000))
+groupby = "measurement"
+features_lin = features_lin.set_index(measurement=["violin", "phase", "violinist"])
+
+features_lin = features_lin.groupby("measurement").map(lambda x: x / x.mean())
+
+mean = 20 * np.log10(features_lin.groupby(groupby).mean("measurement"))
+min_val = 20 * np.log10(features_lin.groupby(groupby).min("measurement"))
+max_val = 20 * np.log10(features_lin.groupby(groupby).max("measurement"))
+diff = mean.sel(phase=2) - mean.sel(phase=1)
+
+n_violins = len(VIOLINS)
+
+fig, axs = plt.subplots(
+    n_violins + 1,
+    2,
+    sharex=True,
+    sharey="row",
+    figsize=(140 * mm, 200 * mm),
+    constrained_layout=True,
+)
+
+for i, violin in enumerate(VIOLINS):
+    for j, violinist in enumerate(VIOLINISTS):
+        ax = axs[i, j]
+
+        for phase in PHASES:
+            m = mean.sel(violin=violin, violinist=violinist, phase=phase)
+            lower = min_val.sel(violin=violin, violinist=violinist, phase=phase)
+            upper = max_val.sel(violin=violin, violinist=violinist, phase=phase)
+
+            # Plot Mean
+            ax.plot(
+                m.frequency,
+                m,
+                label=f"Phase {phase}",
+                c=colors[phase],
+            )
+
+            # Plot min/max range
+            ax.fill_between(
+                m.frequency, lower, upper, alpha=0.2, color=colors[phase]
+            )
+
+        if i == 0:
+            ax.set_title("Control Group" if j == 0 else "Test Violinist")
+        if j == 0:
+            ax.set_ylabel(f"{violin.capitalize()}\nAmplitude (dB)")
+
+        ax.grid(True, which="both", alpha=0.3)
+
+for j, violinist in enumerate(VIOLINISTS):
+    ax = axs[3, j]
+    for violin in VIOLINS:
+        d = diff.sel(violin=violin, violinist=violinist)
+        ax.plot(d.frequency, d, label=violin.capitalize())
+
+    ax.set_xlabel("Frequency (Hz)")
+    ax.grid(True, which="both", alpha=0.3)
+    if j == 0:
+        ax.set_ylabel("Difference (dB)")
+    ax.legend(fontsize="x-small", loc="upper left", ncol=3)
+
+for ax in axs.flat:
+    ax.set_xscale("log")
+    ax.set_xlim([200, 5000])
+    ax.xaxis.set_major_formatter(mpl.ticker.ScalarFormatter())
+    ax.set_xticks([200, 500, 1000, 5000])
+    ax.legend(fontsize="x-small", loc="upper left", ncol=3, mode="expand")
+
+output_png = pathlib.Path("reports/figures/recordings.png")
+output_svg = pathlib.Path("reports/figures/recordings.svg")
+output_png.parent.mkdir(parents=True, exist_ok=True)
+
+plt.savefig(output_png)
+plt.savefig(output_svg)
+print(f"Figures saved to {output_png} and {output_svg}")
+```

@@ -101,8 +101,28 @@ plt.savefig("../reports/figures/ratings.svg")
 ```
 
 ```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import numpy as np
+
+df = pd.read_csv("../data/processed/ratings.csv")
+
+CRITERION_MAP = {
+    "P": "Power",
+    "F": "Ease of Playing",
+    "T": "Tone",
+}
+
+VIOLIN_MAP = {
+    "Klimke": "Klimke \n (Test)",
+    "Levaggi": "Levaggi \n (Control)",
+    "Stoppani": "Stoppani \n (Control)",
+}
+
+
 def ci(a):
-    """calculate confidence interval using Wikipedia's formula"""
     m = np.mean(a)
     s = 1.96 * np.std(a) / np.sqrt(len(a))
     return m - s, m + s
@@ -113,11 +133,17 @@ RATIO = 1.3
 
 sns.set_theme(style="whitegrid")
 mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
-# 1. Initialize the Grid
+
 g = sns.FacetGrid(
-    data=df,
-    row="violin",
-    col="criterion",
+    data=(
+        df.assign(
+            scope_pretty=lambda x: x["scope"].str.title(),
+            criterion_pretty=lambda x: x["criterion"].map(CRITERION_MAP),
+            violin_pretty=lambda x: x["violin"].map(VIOLIN_MAP),
+        )
+    ),
+    row="violin_pretty",
+    col="criterion_pretty",
     margin_titles=True,
     height=WIDTH / RATIO,
     aspect=RATIO,
@@ -125,35 +151,42 @@ g = sns.FacetGrid(
 
 g.map(
     sns.stripplot,
-    "scope",
+    "scope_pretty",
     "rating",
     "phase",
     dodge=True,
-    alpha=0.4,
+    alpha=0.2,
     palette="tab10",
-    order=["control", "test"],
+    order=["Control", "Test"],
     hue_order=[1, 2],
 )
 
 g.map(
     sns.pointplot,
-    "scope",
+    "scope_pretty",
     "rating",
     "phase",
     errorbar=ci,
     estimator="mean",
-    dodge=0.4,
+    dodge=0.2,
     linestyle="none",
-    palette="tab10",
-    order=["control", "test"],
+    # palette="tab10",
+    palette=[colors[0], colors[1]],
+    order=["Control", "Test"],
     hue_order=[1, 2],
 )
 
 g.add_legend(title="Phase")
-g.set_axis_labels("Scope", "Rating (0-10)")
 
 g.set_titles(col_template="{col_name}", row_template="{row_name}")
-plt.savefig("../reports/figures/ratings.svg")
+
+g.set_axis_labels("Violinist", "Rating (0-10)")
+# plt.tight_layout()
+for ax in g.axes[:, -1]:
+    for txt in ax.texts:
+        txt.set_multialignment("center")
+plt.savefig("../reports/figures/ratings.png")
+plt.savefig("../reports/figures/ratings.svg") 
 ```
 
 ## Statistical Test

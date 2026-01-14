@@ -1,193 +1,90 @@
-#set heading(numbering: "1.")
-#set text(font: "EB Garamond")
+= Abstract
+Can a rarely-played violin improve in sound quality by being played? It is a strong belief among musicians and manufacturers that playing "opens up" an instrument, although no study has been able to demonstrate this effect.
+We have revisited this question by performing multiple types of measurements and by testing an alternative hypothesis: whether the violinist adapts to the instrument.
 
-#title[
-  #set align(center)
-  Disentangling Physical Change from Player Adaptation in Violin \"Playing-In\": \
-  A Longitudinal Study
-]
+We conducted a controlled longitudinal study centered on three rarely-played violins. The protocol involved one test violinist who played the target violin daily until she considered it "opened" (six months), two control violins kept in storage, and a group of ten control violinists. To disentangle physical evolution from player adaptation, we performed a multimodal assessment at the beginning and end of the playing period. The protocol included: (1) input admittances measured via laser vibrometry, (2) musical recordings, (3) subjective violin ratings provided by the players, (4) blind listening tests, and (5) motion capture of the test violinist's bowing gestures.
 
-= Introduction
-- Topic :
-  - "Playing-in" : long-term improvement of violin sound quality due to playing
-    - strong belief among luthiers and players
-    BUT
-    - no physical evidence (@inta2005, @piacsek2023)
-
-- SOTA
-  - @inta2005, @piacsek2023
-    - Null results regarding physical changes
-    - Gaps
-      - physical measurements of the instrument only $=>$ no player influence
-      - player adaptation not investigated
-
-- Research Hypotheses
-  1. Vibro-acoustic evolution : violin properties change due to playing
-
-    OR
-
-  2. Musician adaptation : gestures' adjustments to the violin
-
-- Proposed Approach
-  - Longitudinal study involving
-    - 1 "to-be-played" violin, 2 control violins
-    - 1 "to-play" player, 10 control players
-  - Multimodal Assesment
-    - Vibro-acoustical measurements : radiativities
-    - Musical recordings
-    - Subjective violin ratings
-    - Motion Capture measurements
-    - Listening tests
+Our results show no evidence of acoustical change in the played violin compared to control instruments, nor do they indicate any adaptation by the player.
 
 = Methods
-== Study Design
-Goal : A longitudinal study comparing a "played" condition against controlled storage.
 
-- 11 professional violinists
-  - 1 test violinist : professional soloist. Will extensively play the test violin
-  - 10 controls :
-    - professional and semi-professionals violinists
-    - blinded to the study goals
-    - participated only in measurements sessions
+== Study Design and Participants
+The experiment employed a longitudinal protocol comparing a "played" condition against a controlled storage condition over a six-month period. The cohort consisted of 11 professional violinists. One musician, a professional soloist, was designated as the *Test Violinist* and performed the daily playing intervention. The remaining 10 participants served as a *Control Group*; this group consisted of professional and semi-professional violinists who were naive to the specific goals of the study and the roles of the instruments, participating solely in the measurement sessions.
 
-- 3 "not-played" violins
-  - 1 test : selected by the "test" violinist for its "opening potential". Unknown for the other participants
-  - 2 controls : kept in storage except for measurements sessions
-  - violins are checked and adjusted according to the "test" player $=>$ same strings, same chinrests
+Three "rarely-played" violins were selected for the study. The *Test Violin* was selected by the Test Violinist based on its perceived potential to "open up." Two additional instruments served as *Control Violins*. While the Test Violin was played extensively, the Control Violins were kept in the instrumental collection of the _Conservatoire National Supérieur de Musique et de Danse de Paris_ (CNSMDP). This location provided a stable, instrument-friendly storage environment comparable to a professional luthier’s workshop. To ensure consistent mechanical boundary conditions, all three violins were adjusted by a luthier prior to the study, equipped with identical strings and chinrests.
 
-=== Timeline
-- Phase 1
-  1. Session 1 : Measurements
-    $ "ONE WEEK LATER (to measure variability)" $
-  2. Session 2 : Measurements
-- Playing-in period
-  - test violinist plays the test violin daily (some exceptions during concert tours)
-  - control violins remain in storage
-  - ends when "test" player decides
-- Phase 2 : Session 3 : Measurements
-- Phase 3 : Listening tests
+== Timeline and Procedure
+The protocol was divided into three measurement sessions ($T_0, T_{1w}, T_{6m}$):
++ *Session 1 ($T_0$):* Baseline measurements (Phase 1).
++ *Session 2 ($T_{1w}$):* Measurements repeated one week later without playing intervention to establish test-retest reliability and measurement variability.
++ *Intervention Phase:* The Test Violinist played the Test Violin daily (with minor exceptions during concert tours). The Control Violins remained in storage. The duration of this phase was determined by the Test Violinist's subjective assessment of the instrument's evolution.
++ *Session 3 ($T_{6m}$):* Final measurements (Phase 2) conducted after the playing-in period concluded.
 
-== Admittances Measurements
-- Materials :
-  - Laser Doppler Vibrometer (Polytec OFV-505/OFV-3001)
-  - Impact hammer (PCB 086E80)
-- Excitation at the G string
-- Velocity at the E string
+Following the physical and behavioral acquisitions, a listening test (Phase 3) was conducted to assess perceptual changes.
+
+== Vibro-acoustical Measurements
+Input admittance (point mobility) was measured using a Laser Doppler Vibrometer (Polytec OFV-505/OFV-3001) and an instrumented impact hammer (PCB 086E80). To simulate a supported boundary condition while minimizing damping of the corpus modes, violins were placed horizontally on a heavy table supported by a block of open-cell viscoelastic foam. Excitation was applied to the bridge on the G-string side, and velocity was measured at the E-string side.
 
 == Musical Recordings
-- Dry large room
-- Pair DPA-4010, 48000Hz, 50cm from the violinists
-- Protocol
-  - Play each violin for 5-10 min (familiarization phase)
-  - For each each violin, record excerpts of the "repertoire" : a scale, ...
-- Features extracted :
-  - LTAS (@ballesteros2025)
+Recordings were acquired in a large dry room (approx. $100 "m"^2$) with low reverberation. Signals were captured using a stereo pair of DPA 4010 omnidirectional microphones positioned 50 cm from the player. To ensure longitudinal repeatability, microphone gain was fixed via the audio interface (RME Fireface) across all sessions, and player/microphone positions were standardized using floor markings.
+
+The recording protocol for each violin consisted of a 5–10 minute familiarization period followed by the performance of standardized excerpts from the repertoire (scales and melodic phrases).
 
 == Subjective Violin Ratings
-Before recordings, rate each violin based on 3 criteria :
-- Power
-- Ease of play
-- Beauty of tone
+Prior to the recording tasks, participants evaluated each violin based on three criteria: *Power*, *Ease of Playing*, and *Beauty of Tone* (rated on a continuous scale from 0 to 10). The presentation order of the violins was randomized for each participant.
+
+_Note:_ Evaluations were performed under two conditions: a visual condition and a blinded condition (using opaque sunglasses). Preliminary analysis revealed no statistically significant interaction between the visual condition and the ratings. Consequently, to report results with maximum ecological validity, only the ratings from the visual condition are presented here.
 
 == Motion Capture
-- Materials :
-  - OptiTrack Motive + 12 cameras @ 120Hz + markers
-  - Test violinist
-  - Test violinist's bow
-  - Test violin + 1 control violin + Test violinist's violin
+Kinematic data of the Test Violinist were acquired using an OptiTrack Motive system comprising 12 cameras operating at 120 Hz. Passive reflective markers were attached to the Test Violin, the Control Violin, the player’s personal violin, and the bow. The system was calibrated to a mean residual error of $< ["XX mm"]$.
 
-- Procedure :
-  - Place markers on the bow and each violin
-  - For each violin
-    - Play it for 5-10 min (warming-up and / or familiarization)
-    - Record excerpts of the repertoire : ...
-
-- Processing
-  - Alignment using DTW
-  - Extracted features :
-    - bow velocity
-    - bow-bridge distance
-    - bowing skewness
+The procedure mirrored the audio recording protocol: markers were affixed, and the violinist performed the standardized repertoire after a warm-up period. Extracted features included bow velocity, bow-bridge distance, and bowing skewness.
 
 == Listening Test
-#figure(
-  table(
-    columns: (auto, 1fr, 1fr, 1fr, 1fr, 1fr, 1fr),
-    align: center,
-    table.header(
-      table.cell(rowspan: 2)[Pair n°],
-      table.cell(colspan: 3)[Stimuli 1],
-      table.cell(colspan: 3)[Stimuli 2],
-      [Violin], [Player], [Session], [Violin], [Player], [Session],
-    ),
-    [1], [Klimke], [SMD], [1], [Klimke], [SMD], [2],
-    [2], [Klimke], [SMD], [1], [Klimke], [SMD], [3],
-    [3], [Levaggi], [SMD], [1], [Levaggi], [SMD], [2],
-    [4], [Levaggi], [SMD], [1], [Levaggi], [SMD], [3],
-    [5], [Stoppani], [SMD], [1], [Stoppani], [SMD], [2],
-    [6], [Stoppani], [SMD], [1], [Stoppani], [SMD], [3],
-    [7], [Klimke], [SMD], [3], [Levaggi], [SMD], [3],
-    [8], [Stoppani], [SMD], [1], [Klimke], [SMD], [1],
-    [9], [Klimke], [SMD], [1], [Klimke], [SMD], [1na],
-    [10], [Klimke], [SMD], [2], [Klimke], [SMD], [2],
-    [11], [Klimke], [Norimi], [1], [Klimke], [Norimi], [2],
-    [12], [Klimke], [Norimi], [1], [Klimke], [Norimi], [3],
-    [13], [Levaggi], [Norimi], [1], [Levaggi], [Norimi], [2],
-    [14], [Levaggi], [Norimi], [2], [Levaggi], [Norimi], [3],
-    [15], [Stoppani], [Norimi], [1], [Stoppani], [Norimi], [2],
-    [16], [Stoppani], [Norimi], [2], [Stoppani], [Norimi], [3],
-    [17], [Klimke], [Norimi], [1], [Levaggi], [Norimi], [1],
-    [18], [Stoppani], [Norimi], [1], [Klimke], [Norimi], [1],
-    [19], [Klimke], [Norimi], [2], [Klimke], [Norimi], [2na],
-    [20], [Klimke], [SMD], [1], [Klimke], [Norimi], [1],
-  ),
-  caption: [List of presented pairs in the listening test],
-)<t:pairs>
+A perceptual evaluation was conducted using a custom browser-based interface (HTML/JS) with high-quality audio playback. The participant pool ($N=20$) included the 11 violinists from the study and 9 additional musicians. Participants used Sennheiser HD 100 headphones (or equivalent high-quality hardware for home-based participants).
+
+Stimuli consisted of excerpts (opening of the Tchaikovsky Violin Concerto) cut to identical lengths. A fade-in/fade-out was applied, and loudness was normalized according to the EBU R128 standard. Participants were presented with pairs of recordings and asked to rate the dissimilarity on a scale of 0 to 10. Pairs included comparisons between sessions ($T_0$ vs. $T_{1w}$ and $T_0$ vs. $T_{6m}$) for both Test and Control instruments.
+
+== Data Processing and Analysis
+
+=== Admittance Processing
+For each measurement point, the Frequency Response Function (FRF) was estimated using the $H_1$ estimator based on 5 consecutive impacts:
+
+$ H_1(f) = (angle.l G_(x y, i)(f) angle.r) / (angle.l G_(x x, i)(f) angle.r) $
+
+where $G_(x y, i)$ is the cross-power spectral density between the $i$-th impact force and velocity, $G_(x x, i)$ is the auto-power spectral density of the force, and $angle.l dot angle.r$ denotes the average over the 5 impacts.
+
+To quantify repeatability, measurements were performed three times per session. The representative amplitude curve for each session was calculated as the Root Mean Square (RMS) of the linear magnitudes:
+
+$ |H|_"session" = sqrt(1/3 sum_(k=1)^3 |H_(1,k)|^2) $
+
+Finally, measurement uncertainty was defined as the standard deviation of the magnitudes converted to the decibel scale ($20 log_(10) |H_1|$).
+
+=== Audio Feature Extraction
+Audio recordings were resampled to 16 kHz for analysis. The Long-Term Average Spectrum (LTAS) was computed over the entire duration of the excerpt using Welch's method (Hann window, length 2048 samples, hop size 512 samples). To minimize the influence of transient outliers, the median was used
 
 = Results
 
 == Admittances Measurements
+@fig:admittances presents the measured input admittances for the test violin (Klimke) and the two control violins (Levaggi, Stoppani). The top three panels show the frequency response functions for each instrument, while the bottom panel details the spectral difference between the two phases.
+
+Visually, the frequency response functions exhibit high stability, with the post-playing curves (red, $T_"6m"$) largely superimposing onto the baseline curves (gray, $T_0$) for all instruments.
+
+Regarding the spectral differences, while localized fluctuations are observable, it is crucial to note that the deviations recorded for the test violin are of the same order of magnitude as those observed for the control violins. The spectral changes for the played instrument do not exceed the baseline variability established by the unplayed instruments, suggesting that the measured variations are attributable to environmental factors or measurement reproducibility rather than a specific "playing-in" effect.
+
 #figure(
   image("../figures/admittances.svg"),
-  caption: [Admittances of the three violins before and after the playing phase.],
+  caption: [Input admittance measured at the bridge for the test violin (Klimke) and two control violins (Levaggi, Stoppani). Gray curves indicate the baseline phase ($T_0$) and red curves indicate the post-playing phase ($T_"6m"$). Shaded areas represent the measurement uncertainty (minimum and maximum values over 3 repetitions). The bottom panel displays the magnitude difference between Phase 2 and Phase 1 for each instrument.],
 ) <fig:admittances>
 
 == Musical Recordings
+@fig:ltas presents the Long-Term Average Spectra (LTAS) of scales recorded on the test violin (Klimke) and the two control violins (Levaggi, Stoppani). The data are organized by cohort: the Control Group (left column) and the Test Violinist (right column). The top three panels show the LTAS for each instrument, while the bottom panel details the difference between the two phases.
+
+Visually, the spectra exhibit high stability between phases, with the post-playing curves (red, $T_"6m"$) largely superimposing onto the baseline curves (gray, $T_0$) for all instruments. This stability is observed both in the control group and on the recordings of the test violinist.
+
+The LTAS differences displayed in the bottom panel indicate that the spectral deviations recorded for the test violin are of the same order of magnitude as those observed for the control violins. This suggests that the measured variations are attributable to environmental factors or measurement reproducibility rather than a specific "playing-in" effect.
+
 #figure(
-  image("../figures/ltas.svg"),
-  caption: [LTAS of the three violins before and after the playing phase.],
+  image("../figures/recordings.svg"),
+  caption: [Long-Term Average Spectra (LTAS) of scales recorded on the test violin (Klimke) and two control violins (Levaggi, Stoppani). The left column displays the average across the **Control Group** (10 violinists), while the right column displays the **Test Violinist**. Gray curves indicate the baseline phase ($T_0$) and red curves indicate the post-playing phase ($T_"6m"$). Shaded areas represent the variability range (min-max across participants for the left column; min-max across takes for the right column). The bottom panel displays the mean LTAS magnitude difference between Phase 2 and Phase 1.],
 ) <fig:ltas>
-
-== Subjective Violin Ratings
-#figure(
-  image("../figures/ratings.svg"),
-  caption: [Subjective ratings of the three violins before and after the playing phase.],
-) <fig:ratings>
-
-== Motion Capture
-#figure(
-  image("../figures/mocap_beta.png", width: 80%),
-  caption: [Bow-bridge distance before and after the playing phase.],
-) <fig:ratings>
-
-== Listening Test
-#figure(
-  image("../figures/tests.svg"),
-  caption: [Subjective ratings of the three violins before and after the playing phase.],
-) <fig:tests>
-
-= Discussion
-
-= Conclusion
-
-= Acknowledgements
-- Julien Dubois
-- Léa Martinez
-- Stéphanie-Marie Degand
-- CNSM
-- Mehdi Maglach
-- François Longo
-- Emma Barthe
-- Victor Salvador Castrillo
-
-#bibliography("Thèse.bib")

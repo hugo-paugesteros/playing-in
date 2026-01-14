@@ -12,6 +12,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import xarray as xr
 import shutil
+import seaborn as sns
 ```
 
 ```{python}
@@ -72,7 +73,7 @@ for session in sessions:
         for i, file_path in enumerate(file_paths):
             ds_entry = process_file(file_path)
             if ds_entry is not None:
-                dst = f"../data/raw/phase_{session}/{violin.lower()}/admittances/measurement_{i+1}.mat"
+                dst = f"../data/raw/phase_{session}/{violin.lower()}/admittances/measurement_{i + 1}.mat"
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copy(file_path, dst)
                 dataset.append(ds_entry)
@@ -87,7 +88,9 @@ dataset
 ```{python}
 dataset = xr.open_dataset("../data/processed/admittances.nc")
 
-mean = dataset["H_db"].groupby(["violin", "session"]).mean(dim="measurement")
+H_lin = 10 ** (dataset["H_db"] / 20)
+mean = (H_lin**2).groupby(["violin", "session"]).mean(dim="measurement") ** (1 / 2)
+mean = 20 * np.log10(mean)
 std = dataset["H_db"].groupby(["violin", "session"]).std(dim="measurement")
 
 mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
@@ -110,9 +113,154 @@ for ax, (violin, sub_da) in zip(grid.axs.flat, mean.groupby("violin")):
         s = std.sel(violin=violin, session=session)
 
         ax.fill_between(m.frequency, m - s, m + s, alpha=0.2)
+
+grid.figlegend.set_title("Session")
 grid.set_axis_labels("Frequency (Hz)", "Amplitude (dB)")
+plt.savefig("../reports/figures/admittances.png")
 plt.savefig("../reports/figures/admittances.svg")
 plt.show()
+```
+
+
+```{python}
+dataset = xr.open_dataset("../data/processed/admittances.nc")
+
+H_lin = 10 ** (dataset["H_db"] / 20)
+mean = (H_lin**2).groupby(["violin", "session"]).mean(dim="measurement") ** (1 / 2)
+mean = 20 * np.log10(mean)
+diff = mean.sel(session=1) - mean.sel(session=3)
+std = dataset["H_db"].groupby(["violin", "session"]).std(dim="measurement")
+
+mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+
+violins = mean.violin.values
+n_violins = len(violins)
+
+mm = 1 / (2.54 * 10)
+
+fig, axs = plt.subplots(
+    nrows=n_violins + 1,
+    ncols=1,
+    sharex=True,
+    figsize=(140 * mm, 200 * mm),
+)
+
+colors = {
+    1: "tab:gray",
+    3: "tab:red",
+    "Klimke": "C0",
+    "Levaggi": "C1",
+    "Stoppani": "C2",
+}
+
+for i, violin in enumerate(violins):
+    ax = axs[i]
+
+    # Title logic
+    title_suffix = "(Test)" if violin == "Klimke" else "(Control)"
+    ax.set_title(f"{violin} {title_suffix}")
+
+    # Loop over sessions manually
+    for phase, session in zip([1, 2], [1, 3]):
+        # Select data
+        m = mean.sel(violin=violin, session=session)
+        s = std.sel(violin=violin, session=session)
+        ind = dataset.where(
+            (dataset.violin == violin) & (dataset.session == session),
+            drop=True,
+        )
+        ind = ind["H_db"].T
+
+        # Plot Mean
+        ax.plot(
+            m.frequency,
+            m,
+            label=f"Phase {phase}",
+            c=colors[session],
+        )
+
+        # Plot individual
+        # ax.plot(dataset.frequency, ind, c=colors[session], alpha=0.2)
+
+        # Plot Variability (Fill)
+        ax.fill_between(
+            m.frequency,
+            ind.min("measurement"),
+            ind.max("measurement"),
+            alpha=0.2,
+            color=colors[session],
+            # label="Range (min-max)",
+        )
+
+    axs[-1].plot(
+        diff.frequency,
+        diff.sel(violin=violin),
+        label=violin,
+        c=colors[violin],
+    )
+
+for ax in axs:
+    ax.set_xscale("log")
+    ax.set_xlim([180, 5000])
+    ax.set_ylim([-45, 0])
+    ax.grid(True, which="both", alpha=0.3)
+    ax.set_xlabel("Frequency (Hz)")
+    ax.set_ylabel("Amplitude (dB)")
+    ax.xaxis.set_ticks([200, 500, 1000, 5000])
+    ax.get_xaxis().set_major_formatter(mpl.ticker.ScalarFormatter())
+    ax.legend(
+        fontsize="small",
+        loc="upper left",
+        mode="expand",
+        ncol=4,
+    )
+
+axs[-1].set_title("Differences between phase 1 and phase 2")
+axs[-1].set_ylim([-20, 25])
+axs[-1].legend(
+    fontsize="small",
+    loc="upper left",
+    mode="expand",
+    ncol=3,
+)
+
+plt.savefig("../reports/figures/admittances.png")
+plt.savefig("../reports/figures/admittances.svg")
+plt.show()
+```
+
+```{python}
+dataset = xr.open_dataset("../data/processed/admittances.nc")
+
+# 1. Convert to DataFrame
+df = dataset["H_db"].sel(frequency=slice(200, 5000)).to_dataframe().reset_index()
+
+# Load your style
+mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+
+# 2. Plot all measurements
+# units="measurement" separates the lines
+sns.color_palette("tab10")
+grid = sns.relplot(
+    data=df,
+    x="frequency",
+    y="H_db",
+    row="violin",
+    hue="session",
+    units="measurement",
+    estimator=None,
+    kind="line",
+    height=5 / 3,
+    aspect=3,
+    facet_kws={"sharex": True, "sharey": False},
+    palette=sns.color_palette("tab10"),
+    alpha=0.8,
+)
+grid.legend.set_title("Session")
+grid.set_axis_labels("Frequency (Hz)", "Amplitude (dB)")
+
+# 3. Apply scales and limits
+grid.set(xscale="log", xlim=[200, 5000], ylim=[-50, -10])
 ```
 
 ## Euclidean distances between admittances

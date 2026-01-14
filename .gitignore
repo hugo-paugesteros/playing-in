@@ -3,3 +3,4 @@ data/_raw
 *.csv
 notebooks/_output
 .vscode
+gemini.md
