@@ -1,184 +1,178 @@
+import argparse
+import pathlib
+import warnings
+from typing import Optional, Tuple
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import xarray as xr
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import numpy as np
-import pathlib
-from config import mm, colors
+
+from config import mm, colors, ci, VIOLIN_MAP, SCOPES_MAP, CRITERION_MAP
+
+VIOLINS = ["klimke", "levaggi", "stoppani"]
+SCOPES = ["control", "test"]
+CRITERION = ["P", "F", "T"]
+
+PROCESSED_DATA_PATH = pathlib.Path("data/processed/ratings.csv")
 
 
-def ci(a):
-    m = np.mean(a)
-    s = 1.96 * np.std(a) / np.sqrt(len(a))
-    return m - s, m + s
+def plot(dataset_path: pathlib.Path):
+    # --- 1. Load Data (Pandas) ---
+    df = pd.read_csv(dataset_path)
 
+    # --- 2. Compute difference ---
+    pivoted = df.pivot_table(
+        index=["scope", "violin", "player", "criterion"],
+        columns="phase",
+        values="rating",
+        aggfunc="mean",  # Handles duplicate ratings if any
+    )
+    df_diff = (pivoted[2] - pivoted[1]).reset_index(name="difference")
 
-# --- Load Data (Same as before) ---
-df = pd.read_csv("data/processed/ratings.csv")
+    # --- 3. Plotting ---
+    fig, axes = plt.subplots(
+        nrows=len(VIOLINS) + 1,
+        ncols=len(CRITERION),
+        sharex="col",
+        sharey="row",
+    )
 
-CRITERION_MAP = {
-    "P": "Power",
-    "F": "Ease of Playing",
-    "T": "Tone",
-}
+    # A. Main Grid (Violin vs Violinist)
+    for i, violin in enumerate(VIOLINS):
+        for j, criterion in enumerate(CRITERION):
+            ax = axes[i, j]
 
+            # Filter data for this specific cell
+            subset = df[
+                (df["violin"] == violin.capitalize()) & (df["criterion"] == criterion)
+            ]
 
-VIOLIN_MAP = {
-    "Klimke": "Klimke (Test)",
-    "Levaggi": "Levaggi (Control)",
-    "Stoppani": "Stoppani (Control)",
-}
+            # Stripplot
+            sns.stripplot(
+                data=subset,
+                x="scope",
+                y="rating",
+                hue="phase",
+                dodge=True,
+                alpha=0.2,
+                palette=[colors[1], colors[2]],
+                order=["control", "test"],
+                hue_order=[1, 2],
+                legend=False,
+                ax=ax,
+            )
 
+            # Pointplot
+            sns.pointplot(
+                data=subset,
+                x="scope",
+                y="rating",
+                hue="phase",
+                errorbar=ci,
+                estimator="mean",
+                dodge=0.2,
+                linestyle="none",
+                palette=[colors[1], colors[2]],
+                order=["control", "test"],
+                hue_order=[1, 2],
+                ax=ax,
+                # legend=False,
+            )
 
-SCOPE_MAP = {"control": "Control group", "test": "Test violinist"}
+            ax.set_xticklabels(["Control Group", "Test Violinist"])
 
-# Create pretty columns upfront to simplify plotting logic later
-df["scope_pretty"] = df["scope"].map(SCOPE_MAP)
-df["criterion_pretty"] = df["criterion"].map(CRITERION_MAP)
-df["violin_pretty"] = df["violin"].map(VIOLIN_MAP)
+            ax.set_xlabel("")
+            ax.get_legend().remove()
 
-# --- Configuration ---
-sns.set_theme(style="whitegrid")
-mpl.style.use("/home/hugo/Thèse/common/styles.mplstyle")
+            if j == 0:
+                ax.sharey(axes[0, 0])
+                ax.set_ylabel(f"{VIOLIN_MAP[violin]}\nRating (0-10)")
+            else:
+                ax.set_ylabel("")
 
-WIDTH = 190 * mm  # Total width
-RATIO = 4 / 3
-NUM_ROWS = 4  # 3 Violins + 1 Manual Row
-NUM_COLS = 3
+            # Titles only on the top row
+            if i == 0:
+                ax.set_title(CRITERION_MAP[criterion])
 
-# Define the grid layout manually
-# sharex='col' keeps columns aligned, sharey='row' allows the new row to have different Y-scale if needed
-fig, axes = plt.subplots(
-    nrows=NUM_ROWS,
-    ncols=NUM_COLS,
-    figsize=(WIDTH, WIDTH / RATIO),  # Adjust height calculation
-    sharex="col",
-    sharey="row",
-)
-
-# Lists to iterate over for the standard part
-violins = list(VIOLIN_MAP.values())
-criteria = list(CRITERION_MAP.values())
-
-# --- 1. Automated Plotting (First 3 Rows) ---
-for i, violin in enumerate(violins):
-    for j, criterion in enumerate(criteria):
-        ax = axes[i, j]
-
-        # Filter data for this specific cell
-        subset = df[
-            (df["violin_pretty"] == violin) & (df["criterion_pretty"] == criterion)
-        ]
-
-        # Stripplot
-        sns.stripplot(
-            data=subset,
-            x="scope_pretty",
-            y="rating",
-            hue="phase",
-            dodge=True,
-            alpha=0.2,
-            palette=[colors[1], colors[2]],
-            order=["Control group", "Test violinist"],
-            hue_order=[1, 2],
-            legend=False,
-            ax=ax,
-        )
-
-        # Pointplot
+    # --- 3.2 Row 4 : Differences ---
+    for col, criteria in enumerate(CRITERION):
+        ax = axes[-1, col]
+        subset = df_diff[(df_diff["criterion"] == criteria)]
         sns.pointplot(
             data=subset,
-            x="scope_pretty",
-            y="rating",
-            hue="phase",
-            errorbar=ci,
-            estimator="mean",
-            dodge=0.2,
-            linestyle="none",
-            palette=[colors[1], colors[2]],
-            order=["Control group", "Test violinist"],
-            hue_order=[1, 2],
+            x="scope",
+            y="difference",
+            hue="violin",
+            palette=[colors["klimke"], colors["levaggi"], colors["stoppani"]],
             ax=ax,
-            # legend=False,
+            linestyle="none",
+            errorbar=ci,
+            dodge=0.4,
         )
-
-        ax.set_xlabel("")
         ax.get_legend().remove()
-
-        # Y-labels only on the left column
-        if j == 0:
-            ax.sharey(axes[0, 0])
-            ax.set_ylabel(f"{violin}\nRating (0-10)")
+        if col == 0:
+            ax.set_ylabel("Rating difference")
         else:
             ax.set_ylabel("")
 
-        # Titles only on the top row
-        if i == 0:
-            ax.set_title(criterion)
+        ax.set_xlabel("")
 
-# --- 2. Manual Plotting (The New 4th Row) ---
-manual_axes = axes[3, :]
-for j, ax in enumerate(manual_axes):
-    criterion = criteria[j]
-    subset = df[(df["criterion_pretty"] == criterion)]
-
-    mean = subset.groupby(["scope_pretty", "violin_pretty", "phase", "player"])[
-        "rating"
-    ].agg("mean")
-    df_pivoted = mean.unstack(level="phase")
-    diff = df_pivoted[2] - df_pivoted[1]
-    df_diff = diff.reset_index(name="rating")
-    sns.pointplot(
-        data=df_diff,
-        x="scope_pretty",
-        y="rating",
-        hue="violin_pretty",
-        palette=[colors["klimke"], colors["levaggi"], colors["stoppani"]],
-        ax=ax,
-        linestyle="none",
-        errorbar=ci,
-        dodge=0.4,
+    # --- 3.4 Legends ---
+    target_ax_top = axes[1, -1]
+    handles_top, labels_top = target_ax_top.get_legend_handles_labels()
+    target_ax_top.legend(
+        handles_top[:2],
+        labels_top[:2],
+        title="Phase",
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        borderaxespad=0,
     )
-    ax.get_legend().remove()
-    if j == 0:
-        ax.set_ylabel(f"Rating difference")
-    else:
-        ax.set_ylabel("")
 
-    ax.set_xlabel("")
+    target_ax_bottom = axes[3, -1]
+    handles_top, labels_top = target_ax_bottom.get_legend_handles_labels()
+    target_ax_bottom.legend(
+        handles_top[:3],
+        ["Klimke", "Levaggi", "Stoppani"],
+        title="Violin",
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        borderaxespad=0,
+    )
 
-# --- 3. Final Polish ---
-target_ax = axes[1, -1]
-handles_top, labels_top = target_ax.get_legend_handles_labels()
-target_ax.legend(
-    handles_top[:2],
-    labels_top[:2],
-    title="Phase",
-    loc="center left",
-    bbox_to_anchor=(1.02, 0.5),
-    borderaxespad=0,
-)
+    plt.tight_layout()
 
-target_ax = axes[-1, -1]
-handles_top, labels_top = target_ax.get_legend_handles_labels()
-target_ax.legend(
-    handles_top[:3],
-    ["Klimke", "Levaggi", "Stoppani"],
-    title="Violin",
-    loc="center left",
-    bbox_to_anchor=(1.02, 0.5),
-    borderaxespad=0,
-)
+    # --- 4. Saving Figure ---
+    output_png = pathlib.Path("reports/figures/ratings.png")
+    output_svg = pathlib.Path("reports/figures/ratings.svg")
+    output_png.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_png)
+    plt.savefig(output_svg)
+    print(f"Figures saved to {output_png} and {output_svg}")
 
 
-plt.tight_layout()
-plt.subplots_adjust(right=0.9)
+def main():
+    parser = argparse.ArgumentParser(description="Process and plot violin recordings.")
+    parser.add_argument("--process", action="store_true", help="Process raw .mat files")
+    parser.add_argument("--plot", action="store_true", help="Generate plots")
 
-output_png = pathlib.Path("reports/figures/ratings.png")
-output_svg = pathlib.Path("reports/figures/ratings.svg")
-output_png.parent.mkdir(parents=True, exist_ok=True)
+    args = parser.parse_args()
 
-plt.savefig(output_png)
-plt.savefig(output_svg)
-plt.show()
-print(f"Figures saved to {output_png} and {output_svg}")
+    # If no args provided, run both
+    if not args.process and not args.plot:
+        args.process = True
+        args.plot = True
+
+    # if args.process:
+    # ds = build_dataset()
+    # save_dataset(ds, PROCESSED_DATA_PATH)
+
+    if args.plot:
+        plot(PROCESSED_DATA_PATH)
+
+
+if __name__ == "__main__":
+    main()

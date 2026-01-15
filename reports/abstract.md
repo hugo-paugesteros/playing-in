@@ -4,3 +4,12 @@ We have revisited this question by performing multiple types of measurements and
 We conducted a controlled longitudinal study centered on three rarely-played violins. The protocol involved one test violinist who played the target violin daily until she considered it "opened" (six months), two control violins kept in storage, and a group of ten control violinists. To disentangle physical evolution from player adaptation, we performed a multimodal assessment at the beginning and end of the playing period. The protocol included: (1) input admittances measured via laser vibrometry, (2) musical recordings, (3) subjective violin ratings provided by the players, (4) blind listening tests, and (5) motion capture of the test violinist's bowing gestures.
 
 Our results show no evidence of acoustical change in the played violin compared to control instruments, nor do they indicate any adaptation by the player.
+
+
+------------
+
+Can a rarely-played violin improve in sound quality by being played? It is a strong belief among musicians and manufacturers that playing "opens up" an instrument. However, empirical evidence remains elusive. We investigate this phenomenon and test an alternative hypothesis: whether the violinist adapts to the instrument.
+
+We conduct a controlled longitudinal study centered on three rarely-played violins. The protocol involves one test violinist who plays the target violin daily until she considered it "opened" (six months), two control violins kept in storage, and a group of ten control violinists. To disentangle physical evolution from player adaptation, we collected a diverse set of metrics at the beginning and end of the playing period. The protocol includes: (1) input admittances measured via laser vibrometry, (2) musical recordings analyzed via Long-Term Average Spectra (LTAS), and (3) subjective violin ratings provided by the players.
+
+Our results show no evidence of acoustical change in the played violin compared to control instruments, nor do they indicate any adaptation by the player based on audio feature analysis.

@@ -8,8 +8,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io
 import xarray as xr
+import seaborn as sns
+import pandas as pd
 
-from config import mm, colors
+from config import colors, ci, VIOLIN_MAP
 
 # Constants
 RAW_DATA_DIR = pathlib.Path("data/raw/")
@@ -78,7 +80,7 @@ def build_dataset() -> xr.Dataset:
                 warnings.warn(f"Directory not found: {source_dir}")
                 continue
 
-            file_paths = list(source_dir.glob(f"*.mat"))
+            file_paths = sorted(list(source_dir.glob(f"*.mat")))
 
             if not file_paths:
                 warnings.warn(f"No files found for {violin} in session {phase}")
@@ -96,7 +98,6 @@ def build_dataset() -> xr.Dataset:
                             "frequency": f,
                             "violin": violin,
                             "phase": phase,
-                            "filename": file_path.name,
                             "measurement_id": i + 1,
                         },
                     ).expand_dims("measurement")
@@ -117,100 +118,102 @@ def save_dataset(dataset: xr.Dataset, output_path: pathlib.Path):
 
 
 def plot_admittances(dataset_path: pathlib.Path):
-    if not dataset_path.exists():
-        print(f"File not found: {dataset_path}")
-        return
+    # --- 1. Load data ---
+    ds = xr.open_dataset(dataset_path)
+    ds = ds.sel(frequency=slice(180, 5000))
 
-    dataset = xr.open_dataset(dataset_path)
+    ds["H_db"] = 20 * np.log10(np.abs(ds["H"]))
 
-    # Calculate dB
-    dataset["H_db"] = 20 * np.log10(np.abs(dataset["H"]))
-
-    # Calculate Mean (RMS)
-    mean = (dataset["H"] ** 2).groupby(["violin", "phase"]).mean(dim="measurement") ** (
-        1 / 2
+    # --- 2. Prepare data for plotting ---
+    df = ds["H_db"].to_dataframe("amplitude")
+    df_diff = pd.merge(
+        df[df["phase"] == 2],
+        df[df["phase"] == 1],
+        on=["violin", "frequency"],
+        suffixes=("_p2", "_p1"),
     )
-    mean_db = 20 * np.log10(mean)
+    df_diff["difference"] = df_diff["amplitude_p2"] - df_diff["amplitude_p1"]
 
-    # Difference
-    diff_db = mean_db.sel(phase=1) - mean_db.sel(phase=2)
-
-    violins = mean_db.violin.values
-    n_violins = len(violins)
-
-    fig, axs = plt.subplots(
-        nrows=n_violins + 1,
+    # --- 3. Plotting ---
+    fig, axes = plt.subplots(
+        nrows=len(VIOLINS) + 1,
         ncols=1,
         sharex=True,
-        figsize=(140 * mm, 200 * mm),
     )
 
-    if n_violins == 0:
-        return
+    # --- 3.1 Rows 1, 2, 3 ---
+    for i, violin in enumerate(VIOLINS):
+        ax = axes[i]
 
-    for i, violin in enumerate(violins):
-        ax = axs[i]
-        title_suffix = "(Test)" if violin == "Klimke" else "(Control)"
-        ax.set_title(f"{violin.capitalize()} {title_suffix}")
-
-        for phase in PHASES:
-            # Select mean data
-            m = mean_db.sel(violin=violin, phase=phase)
-
-            # Select individual data for range
-            subset = dataset.where(
-                (dataset.violin == violin) & (dataset.phase == phase),
-                drop=True,
-            )
-            ind_db = subset["H_db"]
-
-            # Plot Mean
-            ax.plot(
-                m.frequency,
-                m,
-                label=f"Phase {phase}",
-                c=colors[phase],
-            )
-
-            # Plot Variability (Min/Max range)
-            ax.fill_between(
-                m.frequency,
-                ind_db.min(dim="measurement"),
-                ind_db.max(dim="measurement"),
-                alpha=0.2,
-                color=colors[phase],
-            )
-
-        ax.legend(fontsize="small", loc="upper left", mode="expand", ncol=4)
-
-    # Plot Difference
-    for violin in violins:
-        axs[-1].plot(
-            diff_db.frequency,
-            diff_db.sel(violin=violin),
-            label=violin,
-            c=colors[violin],
+        sns.lineplot(
+            data=df[(df["violin"] == violin)],
+            x="frequency",
+            y="amplitude",
+            hue="phase",
+            errorbar=ci,
+            estimator="mean",
+            palette=[colors[1], colors[2]],
+            ax=ax,
+            err_kws={"linewidth": 0},
         )
 
+        # Tweak axis
+        ax.set_ylabel(f"{VIOLIN_MAP[violin]}\nAmplitude (dB)")
+        ax.get_legend().remove()
+        ax.sharey(axes[0])
+
+    # --- 3.2 Row 4 : Differences ---
+    sns.lineplot(
+        data=df_diff,
+        x="frequency",
+        y="difference",
+        hue="violin",
+        errorbar=ci,
+        estimator="mean",
+        ax=axes[-1],
+        err_kws={"linewidth": 0},
+    )
+    axes[-1].set_ylim([-20, 25])
+    axes[-1].set_xlabel("Frequency (Hz)")
+    axes[-1].set_ylabel("Diff (P2 - P1) (dB)")
+
     # Styling
-    for ax in axs:
+    for ax in axes:
         ax.set_xscale("log")
         ax.set_xlim([180, 5000])
-        ax.set_ylim([-45, 0])
         ax.grid(True, which="both", alpha=0.3)
-        ax.set_xlabel("Frequency (Hz)")
-        ax.set_ylabel("Amplitude (dB)")
         ax.xaxis.set_ticks([200, 500, 1000, 5000])
         ax.get_xaxis().set_major_formatter(mpl.ticker.ScalarFormatter())
 
-    axs[-1].set_title("Differences between phase 1 and phase 2")
-    axs[-1].set_ylim([-20, 25])
-    axs[-1].legend(fontsize="small", loc="upper left", mode="expand", ncol=3)
+    # --- 3.4 Legends ---
+    target_ax = axes[1]
+    handles_top, labels_top = target_ax.get_legend_handles_labels()
+    target_ax.legend(
+        handles_top[:2],
+        labels_top[:2],
+        title="Phase",
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        borderaxespad=0,
+    )
 
+    target_ax = axes[-1]
+    handles_top, labels_top = target_ax.get_legend_handles_labels()
+    target_ax.legend(
+        handles_top[:3],
+        ["Klimke", "Levaggi", "Stoppani"],
+        title="Violin",
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        borderaxespad=0,
+    )
+
+    plt.tight_layout()
+
+    # --- 4. Saving Figure ---
     output_png = pathlib.Path("reports/figures/admittances.png")
     output_svg = pathlib.Path("reports/figures/admittances.svg")
     output_png.parent.mkdir(parents=True, exist_ok=True)
-
     plt.savefig(output_png)
     plt.savefig(output_svg)
     print(f"Figures saved to {output_png} and {output_svg}")

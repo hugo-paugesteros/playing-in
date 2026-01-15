@@ -73,18 +73,34 @@ Visually, the frequency response functions exhibit high stability, with the post
 Regarding the spectral differences, while localized fluctuations are observable, it is crucial to note that the deviations recorded for the test violin are of the same order of magnitude as those observed for the control violins. The spectral changes for the played instrument do not exceed the baseline variability established by the unplayed instruments, suggesting that the measured variations are attributable to environmental factors or measurement reproducibility rather than a specific "playing-in" effect.
 
 #figure(
-  image("../figures/admittances.svg"),
+  image("../figures/admittances.png"),
   caption: [Input admittance measured at the bridge for the test violin (Klimke) and two control violins (Levaggi, Stoppani). Gray curves indicate the baseline phase ($T_0$) and red curves indicate the post-playing phase ($T_"6m"$). Shaded areas represent the measurement uncertainty (minimum and maximum values over 3 repetitions). The bottom panel displays the magnitude difference between Phase 2 and Phase 1 for each instrument.],
 ) <fig:admittances>
 
 == Musical Recordings
-@fig:ltas presents the Long-Term Average Spectra (LTAS) of scales recorded on the test violin (Klimke) and the two control violins (Levaggi, Stoppani). The data are organized by cohort: the Control Group (left column) and the Test Violinist (right column). The top three panels show the LTAS for each instrument, while the bottom panel details the difference between the two phases.
+@fig:recordings presents the Long-Term Average Spectra (LTAS) of scales recorded on the test violin (Klimke) and the two control violins (Levaggi, Stoppani). The data are organized by cohort: the Control Group (left column) and the Test Violinist (right column). The top three panels show the LTAS for each instrument, while the bottom panel details the difference between the two phases.
 
 Visually, the spectra exhibit high stability between phases, with the post-playing curves (red, $T_"6m"$) largely superimposing onto the baseline curves (gray, $T_0$) for all instruments. This stability is observed both in the control group and on the recordings of the test violinist.
 
 The LTAS differences displayed in the bottom panel indicate that the spectral deviations recorded for the test violin are of the same order of magnitude as those observed for the control violins. This suggests that the measured variations are attributable to environmental factors or measurement reproducibility rather than a specific "playing-in" effect.
 
 #figure(
-  image("../figures/recordings.svg"),
-  caption: [Long-Term Average Spectra (LTAS) of scales recorded on the test violin (Klimke) and two control violins (Levaggi, Stoppani). The left column displays the average across the **Control Group** (10 violinists), while the right column displays the **Test Violinist**. Gray curves indicate the baseline phase ($T_0$) and red curves indicate the post-playing phase ($T_"6m"$). Shaded areas represent the variability range (min-max across participants for the left column; min-max across takes for the right column). The bottom panel displays the mean LTAS magnitude difference between Phase 2 and Phase 1.],
-) <fig:ltas>
+  image("../figures/recordings.png"),
+  caption: [Long-Term Average Spectra (LTAS) of scales recorded on the test violin (Klimke) and two control violins (Levaggi, Stoppani). The left column displays the average across the *Control Group* (10 violinists), while the right column displays the *Test Violinist*. Gray curves indicate the baseline phase ($T_0$) and red curves indicate the post-playing phase ($T_"6m"$). Shaded areas represent the variability range (min-max across participants for the left column; min-max across takes for the right column). The bottom panel displays the mean LTAS magnitude difference between Phase 2 and Phase 1.],
+) <fig:recordings>
+
+== Subjective Violin Ratings
+@fig:ratings presents the subjective evaluations provided by the musicians for each instrument (Klimke, Levaggi, Stoppani) and each criterion (Power, Ease of Playing, Tone). The top three rows illustrate the absolute ratings for each instrument, while the bottom row displays the rating difference between Phase 2 and Phase 1. Within each panel, ratings are shown for the *Control Group* ($N=10$) and the *Test Violinist*.
+
+Consistent with the physical and acoustical measurements, the ratings exhibit high stability between the baseline ($T_0$, black) and post-playing ($T_{6m}$, gray) phases.
+
+Inspection of the last row indicates that for the Control Group, the mean differences cluster near zero. While the confidence intervals exclude the null line for the Tone criterion (suggesting a statistically detectable shift for the Stoppani and Levaggi), the magnitude of these variations remains small ($<1$ point on a 10-point scale), likely reflecting slight fluctuations in group preference rather than a clear instrumental evolution. Similarly, the results provided by the Test Violinist do not reveal a systematic improvement of the played violin compared to the controls. Although she reported a distinct increase in *Ease of Playing* for the test violin (Klimke, blue), this trend was not replicated for *Tone*, where a control violin (Stoppani, green) was rated as having improved the most. This inconsistency—where unplayed instruments are perceived to improve as much as or more than the played instrument depending on the criterion—suggests that the observed variations stem from the natural variability of the musician's judgment rather than a physical "playing-in" effect.
+
+#figure(
+  image("../figures/ratings.png"),
+  caption: [Subjective ratings for the test violin (Klimke) and two control violins (Levaggi, Stoppani) across three criteria: Power, Ease of Playing, and Tone. The top three rows display the absolute ratings, while the bottom row displays the rating difference between Phase 2 and Phase 1. Within each panel, results are stratified by rater: the *Control Group* ($N=10$) and the *Test Violinist*. Black markers indicate the baseline session ($T_0$) and gray markers indicate the post-playing session ($T_{6m}$). Transparent dots represent individual ratings, while solid dots with error bars represent the mean $plus.minus$ 95% confidence interval.],
+) <fig:ratings>
+
+== Listening Test
+
+== Motion Capture

@@ -1,9 +1,24 @@
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 
+# --- Custom styles ---
 mpl.style.use(["/home/hugo/Thèse/common/styles.mplstyle", "acta-acustica.mplstyle"])
 
+# --- Width and Height ---
 mm = 1 / (2.54 * 10)
+WIDTH = 190 * mm
+RATIO = 4 / 3
+HEIGHT = WIDTH / RATIO
+plt.rcParams["figure.figsize"] = (WIDTH, HEIGHT)
+
+
+# --- Confidence interval function to use instead of seaborn's ---
+def ci(a):
+    m = np.mean(a)
+    s = 1.96 * np.std(a) / np.sqrt(len(a))
+    return m - s, m + s
+
 
 colors = {
     1: "black",
@@ -11,17 +26,22 @@ colors = {
     "klimke": "C0",
     "levaggi": "C1",
     "stoppani": "C2",
+    "own": "C1",
 }
 
-
-def ci(a):
-    m = np.mean(a)
-    s = 1.96 * np.std(a) / np.sqrt(len(a))
-    return m - s, m + s
-
-
 VIOLIN_MAP = {
-    "Klimke": "Klimke (Test)",
-    "Levaggi": "Levaggi (Control)",
-    "Stoppani": "Stoppani (Control)",
+    "klimke": "Klimke (Test)",
+    "levaggi": "Levaggi (Control)",
+    "stoppani": "Stoppani (Control)",
+    "own": "Test player's violin",
+}
+
+PHASES_MAP = ["Phase 1", "Phase 2"]
+
+SCOPES_MAP = {"test": "Test violinist", "control": "Control group"}
+
+CRITERION_MAP = {
+    "P": "Power",
+    "F": "Ease of Playing",
+    "T": "Tone",
 }

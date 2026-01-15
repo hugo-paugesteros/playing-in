@@ -6,14 +6,13 @@ from typing import Optional, Tuple
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.io
 import xarray as xr
 import pandas as pd
 import seaborn as sns
 
 import identification.dataset
 
-from config import mm, colors, ci
+from config import mm, colors, ci, VIOLIN_MAP
 
 # Constants
 RAW_DATA_DIR = pathlib.Path("data/raw/")
@@ -87,75 +86,47 @@ def save_dataset(dataset: xr.Dataset, output_path: pathlib.Path):
 
 
 def plot(dataset_path: pathlib.Path):
-    if not dataset_path.exists():
-        print(f"File not found: {dataset_path}")
-        return
-
-    # --- 1. Load and Process Data (Xarray) ---
+    # --- 1. Load Data (Xarray) ---
     ds = xr.open_dataset(dataset_path)
-
-    # Select frequency range
     features = ds["features"].sel(frequency=slice(200, 5000))
 
-    # Normalize in linear scale (keep high performance math in xarray)
     features_lin = 10 ** (features / 20)
 
-    # Set MultiIndex to separate violin/phase/violinist
-    features_lin = features_lin.set_index(
-        measurement=["violin", "phase", "violinist", "scope"]
+    # --- 1.2 Normalize each measurement by its own mean ---
+    norm_lin = features_lin / features_lin.mean(dim="frequency")
+    norm_db = 20 * np.log10(norm_lin)
+
+    # --- 1.3 Compute phase 2 - phase 1
+    # Grouping condition
+    multi_indexed = norm_db.set_index(
+        measurement=["violin", "violinist", "scope", "phase"]
     )
+    # Handling duplicates (multiple takes -> mean)
+    averaged_takes = multi_indexed.groupby("measurement").mean()
+    # Pivoting baby
+    unstacked = averaged_takes.unstack("measurement")
+    # Compute difference
+    diff_db = unstacked.sel(phase=2) - unstacked.sel(phase=1)
 
-    # Normalize each measurement by its own mean
-    norm_lin = features_lin.groupby("measurement").map(lambda x: x / x.mean())
-
-    norm_lin = norm_lin.reset_index("measurement")
-
-    # --- 2. Prepare DataFrames for Seaborn ---
-    # Convert back to dB for plotting: 20*log10(x)
-    # Note: Using Mean(dB) here instead of 20log(Mean(Lin)) for simplicity.
-    # If strictly specific math is needed, pre-calculate in xarray as before.
-    df_main = (20 * np.log10(norm_lin)).to_dataframe("amplitude")
-
-    df_means = df_main.groupby(["violin", "violinist", "phase", "frequency", "scope"])[
-        "amplitude"
-    ].mean()
-
-    # B. Unstack 'phase' to move it from rows to columns
-    #    Result has columns: phase 1, phase 2
-    df_pivoted = df_means.unstack("phase")
-
-    # C. Calculate Difference (Phase 2 - Phase 1)
-    diff_series = df_pivoted[2] - df_pivoted[1]
-
-    # D. Reset index to make it plot-ready
-    df_diff = diff_series.reset_index(name="difference")
+    # --- 2. Prepare Dataframes for Seaborn ---
+    df = norm_db.to_dataframe("amplitude").reset_index()
+    df_diff = diff_db.to_dataframe("difference").reset_index()
 
     # --- 3. Plotting ---
-    violins = df_main["violin"].unique()
-    scopes = df_main["scope"].unique()
-
-    # Use subplots to keep the custom layout (Grid + Diff row)
-    fig, axs = plt.subplots(
-        len(violins) + 1,
-        len(scopes),
+    fig, axes = plt.subplots(
+        nrows=len(VIOLINS) + 1,
+        ncols=len(SCOPES),
         sharex=True,
         sharey="row",
-        figsize=(190 * mm, 190 / (4 / 3) * mm),
     )
 
     # A. Main Grid (Violin vs Violinist)
     for row, violin in enumerate(VIOLINS):
         for col, scope in enumerate(SCOPES):
-            ax = axs[row, col]
+            ax = axes[row, col]
 
-            # Filter data for this cell
-            subset = df_main[
-                (df_main["violin"] == violin) & (df_main["scope"] == scope)
-            ]
-
-            # Seaborn Magic: Handles Mean AND Min/Max shading in one line
             sns.lineplot(
-                data=subset,
+                data=df[(df["violin"] == violin) & (df["scope"] == scope)],
                 x="frequency",
                 y="amplitude",
                 hue="phase",
@@ -163,111 +134,75 @@ def plot(dataset_path: pathlib.Path):
                 estimator="mean",
                 palette=[colors[1], colors[2]],
                 ax=ax,
+                err_kws={"linewidth": 0},
             )
 
             if col == 0:
-                suffix = "(Test)" if violin == "klimke" else "(Control)"
-                row_title = f"{violin.capitalize()} {suffix}"
-                ax.set_ylabel(f"{row_title}\nAmplitude (dB)")
+                ax.set_ylabel(f"{VIOLIN_MAP[violin]}\nAmplitude (dB)")
             if row == 0:
                 ax.set_title("Control group" if col == 0 else "Test violinist")
             ax.grid(True, alpha=0.3)
 
-    # B. Bottom Row: Difference Plot
+    # --- 3.2 Row 4 : Differences ---
     for col, scope in enumerate(SCOPES):
-        ax = axs[-1, col]
-        subset_diff = df_diff[df_diff["scope"] == scope]
+        ax = axes[-1, col]
 
         sns.lineplot(
-            data=subset_diff,
+            data=df_diff[df_diff["scope"] == scope],
             x="frequency",
             y="difference",
             hue="violin",
             errorbar=ci,
             estimator="mean",
             ax=ax,
+            err_kws={"linewidth": 0},
         )
-        # ax.get_legend().remove()
-        ax.set_ylabel("Difference (dB)" if col == 0 else "")
         ax.set_xlabel("Frequency")
+        ax.set_ylabel("Difference (dB)" if col == 0 else "")
         ax.grid(True, alpha=0.3)
 
-    # C. Global Styling
-    for ax in axs.flat:
+    # Global Styling
+    for ax in axes.flat:
         if ax.get_legend():
             ax.get_legend().remove()
         ax.set_xscale("log")
-        ax.set_xlim(200, 5000)
-        ax.xaxis.set_major_formatter(mpl.ticker.ScalarFormatter())
-        ax.set_xticks([200, 500, 1000, 5000])
+        ax.set_xlim([200, 5000])
+        ax.grid(True, which="both", alpha=0.3)
+        ax.xaxis.set_ticks([200, 500, 1000, 5000])
+        ax.get_xaxis().set_major_formatter(mpl.ticker.ScalarFormatter())
 
-    # Legends
-    target_ax_top = axs[1, -1]
+    # --- 3.4 Legends ---
+    target_ax_top = axes[1, -1]
     handles_top, labels_top = target_ax_top.get_legend_handles_labels()
     target_ax_top.legend(
         handles_top[:2],
         labels_top[:2],
         title="Phase",
         loc="center left",
-        bbox_to_anchor=(
-            1.02,
-            0.5,
-        ),
+        bbox_to_anchor=(1.02, 0.5),
         borderaxespad=0,
     )
 
-    target_ax_bottom = axs[3, -1]
+    target_ax_bottom = axes[3, -1]
     handles_top, labels_top = target_ax_bottom.get_legend_handles_labels()
     target_ax_bottom.legend(
         handles_top[:3],
-        map(str.capitalize, labels_top[:3]),
+        ["Klimke", "Levaggi", "Stoppani"],
         title="Violin",
         loc="center left",
-        bbox_to_anchor=(
-            1.02,
-            0.5,
-        ),
+        bbox_to_anchor=(1.02, 0.5),
         borderaxespad=0,
     )
 
-    # s = fig.subplotpars
-    # bb = [s.left, s.top + 0.04, s.right - s.left, 0.05]
-    # target_ax_top = axs[0, 0]
-    # handles_top, labels_top = target_ax_top.get_legend_handles_labels()
-    # target_ax_top.legend(
-    #     handles_top[:2],
-    #     ["Phase 1", "Phase 2"],
-    #     # title="Phase",
-    #     loc="lower left",
-    #     bbox_to_anchor=(0, 1.02, 2.185, 0.2),
-    #     borderaxespad=0,
-    #     ncol=2,
-    #     mode="expand",
-    #     # bbox_transform=fig.transFigure,
-    #     fancybox=False,
-    # )
-
-    # target_ax_top = axs[3, 0]
-    # handles_top, labels_top = target_ax_top.get_legend_handles_labels()
-    # target_ax_top.legend(
-    #     handles_top[:3],
-    #     map(str.capitalize, labels_top[:3]),
-    #     # title="Phase",
-    #     loc="lower left",
-    #     bbox_to_anchor=(0, 1.02, 2.185, 0.0),
-    #     borderaxespad=0,
-    #     ncol=3,
-    #     mode="expand",
-    #     # bbox_transform=fig.transFigure,
-    #     fancybox=False,
-    # )
-
-    # Save
     plt.tight_layout()
-    output_path = pathlib.Path("reports/figures/recordings.png")
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(output_path)
-    print(f"Saved to {output_path}")
+
+    # --- 4. Saving Figure ---
+    output_png = pathlib.Path("reports/figures/recordings.png")
+    output_svg = pathlib.Path("reports/figures/recordings.svg")
+    output_png.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_png)
+    plt.savefig(output_svg)
+    print(f"Figures saved to {output_png} and {output_svg}")
 
 
 def main():

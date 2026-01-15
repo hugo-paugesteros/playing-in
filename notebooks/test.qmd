@@ -128,7 +128,7 @@ g = sns.catplot(
     data=plot_df,
     x="player",
     y="diff",
-    col="violin",
+    hue="violin",
     kind="point",
     estimator="mean",
     errorbar=ci,
@@ -137,6 +137,7 @@ g = sns.catplot(
     aspect=RATIO,
     linestyle="none",
     order=order_list,
+    dodge=0.4,
 )
 g.set_axis_labels("Player", "$\\Delta_{31} - \\Delta_{21}$")
 g.set_xticklabels(new_labels)
