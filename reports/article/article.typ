@@ -66,7 +66,7 @@ Given the limited sample size ($N=3$ repetitions per phase), standard statistica
 === Audio Feature Extraction
 Audio recordings were resampled to 16 kHz for analysis. While this reduces the signal bandwidth, previous work by @ballesteros2025 demonstrated that this sampling rate preserves the spectral features necessary for high-accuracy violin identification, with no loss in classification performance compared to high-resolution audio.
 
-The Long-Term Average Spectrum (LTAS) was computed over the entire duration of the excerpt using Welch's method (Hann window, length 2048 samples, hop size 512 samples). To minimize the influence outliers, the median was employed to aggregate the spectral frames.
+The Long-Term Average Spectrum (LTAS) was computed over the entire duration of the excerpt using Welch's method (Hann window, length 2048 samples, hop size 512 samples). To minimize the influence of outliers, the median was employed to aggregate the spectral frames.
 
 = Results
 
@@ -117,10 +117,6 @@ To isolate the specific effect of the six-month interval, the bottom row display
   image("../figures/tests.png"),
   caption: [Results of the pairwise listening test. The top three rows display the mean dissimilarity ratings (0=Identical, 10=Very Different) for "same-violin" pairs. Black markers ($Delta_(11)$) represent the baseline dissimilarity between two takes from Phase 1. Gray markers ($Delta_(21)$) represent the dissimilarity between a Phase 1 take and a Phase 2 take. The bottom row displays the net perceptual shift ($Delta_(21) - Delta_(11)$), quantifying the audible change over 6 months after subtracting the performance variability. Columns indicate the player who produced the stimuli, while the x-axis groups results by listener: the Control Group ($N=20$) and the Test Violinist.],
 ) <fig:tests>
-
-Visually, the test player exhibit high stability in the bow position profile for each excerpt, with the post-playing curves (gray, $T_"6m"$) largely superimposing onto the baseline curves (black, $T_0$) for all instruments.
-
-A close look to the bow position differences shows that the deviations recorded for the test violin are of the same order of magnitude as those observed for the reference violins. The changes in bow position for the played instrument do not exceed the baseline variability established by the unplayed instrument (Stopanni) and the familiar instrument (player's personal violin). This suggests that the measured variations are attributable to environmental factors or measurement reproducibility rather than an adaption effect from the test player.
 
 == Motion Capture
 @fig:mocap_xs presents the aligned bow position profiles ($x_s$) for the test violin (Klimke) and two reference instruments (the player's Personal Violin and the Stoppani control). Each column corresponds to a distinct musical excerpt. Black curves indicate the baseline phase ($T_0$) and gray curves indicate the post-playing phase ($T_"6m"$).
