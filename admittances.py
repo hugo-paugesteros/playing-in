@@ -11,7 +11,7 @@ import xarray as xr
 import seaborn as sns
 import pandas as pd
 
-from config import colors, ci, VIOLIN_MAP
+from config import colors, ci, linear_mean, VIOLIN_MAP
 
 # Constants
 RAW_DATA_DIR = pathlib.Path("data/raw/")
@@ -150,8 +150,9 @@ def plot_admittances(dataset_path: pathlib.Path):
             x="frequency",
             y="amplitude",
             hue="phase",
-            errorbar=ci,
-            estimator="mean",
+            # errorbar=ci,
+            errorbar=("pi", 100),
+            estimator=linear_mean,
             palette=[colors[1], colors[2]],
             ax=ax,
             err_kws={"linewidth": 0},

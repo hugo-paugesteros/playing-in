@@ -20,6 +20,13 @@ def ci(a):
     return m - s, m + s
 
 
+def linear_mean(a):
+    lin = 10 ** (a / 20)
+    m = np.sqrt(np.mean(lin**2))
+    m_db = 20 * np.log10(m)
+    return m_db
+
+
 colors = {
     1: "black",
     2: "darkgrey",
