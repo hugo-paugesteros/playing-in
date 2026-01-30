@@ -1,0 +1,400 @@
+
+
+
+```{python}
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+```
+
+<style>
+figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+</style>
+
+# Les données
+On récupère les données brutes :
+```{python}
+# --- 1. Load Data (Pandas) ---
+df = pd.read_csv("../data/processed/ratings.csv")
+df = df.drop(columns=["Unnamed: 0"])
+df = df[df.condition == "blind"].reset_index(drop=True)
+df
+```
+
+Et on les affiche :
+```{python}
+g = sns.catplot(
+    data=df,
+    x="scope",
+    y="rating",
+    row="violin",
+    col="criterion",
+    hue="session",
+    dodge=True,
+    height=3,
+)
+```
+
+Pour rappel :
+
+- 3 sessions : S1 (baseline), S2 (mesure de la variabilité), [OUVERTURE], S3 (quantifier les changements)
+- On cherche à savoir si :
+    1. L'ouverture a eu un effet sur le Klimke (S3 différente de S1/S2)
+    2. L'ouverture a eu un effet sur la violoniste test (colonne `scope = test`)
+
+Pistes/Questions :
+- Faut-il transformer les notes (pour comparer les individus entre eux) ? Si oui, comment ? Z-scores ?
+- Quelles données et quel test utiliser pour répondre à la question 1 ? Proposition : utiliser les données du groupe contrôle, 
+
+## Question 1 : L'ouverture a-t-elle eu un effet significatif sur le violon test ("Klimke") ?
+
+```{python}
+criterion = "T"
+```
+
+### Z-scores
+On calcule le z-score en calculant la moyenne et l'écart-type des notes de chaque participant pour chaque critère.
+```{python}
+ref_stats = (
+    df[df["session"].isin([1, 2])]
+    .groupby(["player", "criterion"])["rating"]
+    .agg(["mean", "std"])
+    .reset_index()
+)
+ref_stats.columns = ["player", "criterion", "ref_mean", "ref_std"]
+df = pd.merge(df, ref_stats, on=["player", "criterion"], how="left")
+df["z_score"] = (df["rating"] - df["ref_mean"]) / df["ref_std"]
+df
+```
+
+### Paired t-test
+#### Raw scores
+```{python}
+subset = df[
+    (df.criterion == criterion) & (df.violin == "Klimke") & (df.scope == "control")
+].copy()
+pivot_df = subset.pivot(index="player", columns="session", values="rating")
+paired_data = pivot_df[[1, 2, 3]].dropna()
+paired_data
+```
+
+```{python}
+from scipy.stats import ttest_rel
+
+res = ttest_rel(paired_data[1], paired_data[3])
+res
+```
+
+#### Z-scores
+```{python}
+subset = df[
+    (df.criterion == criterion) & (df.violin == "Klimke") & (df.scope == "control")
+].copy()
+pivot_df = subset.pivot(index="player", columns="session", values="z_score")
+paired_data = pivot_df[[1, 2, 3]].dropna()
+paired_data
+```
+
+```{python}
+from scipy.stats import ttest_rel
+
+res = ttest_rel(paired_data[1], paired_data[3])
+res
+```
+
+### Test de Wilcoxon
+```{python}
+subset = df[
+    (df.criterion == criterion) & (df.violin == "Klimke") & (df.scope == "control")
+].copy()
+pivot_df = subset.pivot(index="player", columns="session", values="rating")
+paired_data = pivot_df[[1, 2, 3]].dropna()
+paired_data
+```
+
+```{python}
+from scipy.stats import wilcoxon
+
+res = wilcoxon(paired_data[1], paired_data[3])
+res
+```
+
+### ANOVA répétée
+
+```{python}
+subset = df[(df.criterion == criterion) & (df.scope == "control")].copy()
+paired_data = subset.pivot_table(
+    index="player", columns=["session", "violin"], values="rating"
+)
+valid_players = paired_data.dropna().index
+paired_data = subset[subset.player.isin(valid_players)].copy()
+paired_data
+```
+
+```{python}
+from statsmodels.stats.anova import AnovaRM
+
+res = AnovaRM(
+    data=paired_data, depvar="rating", subject="player", within=["session", "violin"]
+).fit()
+print(res)
+```
+
+### Test de Friedman
+```{python}
+subset = df[
+    (df.criterion == criterion) & (df.violin == "Klimke") & (df.scope == "control")
+].copy()
+pivot_df = subset.pivot(index="player", columns="session", values="rating")
+paired_data = pivot_df[[1, 2, 3]].dropna()
+paired_data
+```
+
+```{python}
+from scipy.stats import friedmanchisquare
+
+res = friedmanchisquare(paired_data[1], paired_data[2], paired_data[3])
+res
+```
+
+### Linear Mixed Model
+
+```{python}
+subset = df[
+    (df.criterion == criterion) & (df.violin == "Klimke") & (df.scope == "control")
+].copy()
+subset.head()
+```
+
+```{python}
+subset = df[(df.criterion == criterion) & (df.scope == "control")].copy()
+subset["session"] = subset["session"].astype(str)  # Ensure categorical
+subset["violin"] = subset["violin"].astype(str)
+# subset.head()
+```
+
+```{python}
+import statsmodels.formula.api as smf
+
+
+model_a = smf.mixedlm(
+    "rating ~ C(session, Treatment('1')) * C(violin, Treatment('Klimke'))",
+    # "rating ~ C(session, Treatment('1'))",
+    data=subset,
+    groups=subset["player"],
+)
+
+# 3. Fit and Print
+result_a = model_a.fit()
+print(result_a.summary())
+```
+
+
+```{python}
+print(result_a.fe_params.index)
+r_matrix = np.zeros_like(result_a.fe_params)
+idx_t3 = result_a.fe_params.index.get_loc("C(session, Treatment('1'))[T.3]")
+idx_t2 = result_a.fe_params.index.get_loc("C(session, Treatment('1'))[T.2]")
+
+# 3. Apply the weights for your hypothesis
+# Hypothesis: Coeff_T3 - 0.5 * Coeff_T2 = 0
+r_matrix[idx_t3] = 1
+r_matrix[idx_t2] = -0.5
+print(result_a.t_test(r_matrix[None, :]).summary())
+```
+
+
+# Question 2 : L'ouverture a-t-elle eu un effet significatif sur la perception du violoniste test sur le Klimke ?
+
+
+```{python}
+import numpy as np
+import pandas as pd
+
+# Paramètres
+criterion = "F"  # Ton critère d'intérêt
+
+# --- 1. Approche GROUPE (La référence robuste) ---
+# On prend tous les violons, tous les joueurs, sessions 1 et 2
+group_data = (
+    df[(df.criterion == criterion) & (df.session.isin([1, 2]))]
+    .pivot(index=["player", "violin"], columns="session", values="rating")
+    .dropna()
+)
+
+group_diffs = group_data[2] - group_data[1]
+group_sd = group_diffs.std()
+group_sdd = 1.96 * group_sd  # Seuil 95% standard (Z-score)
+
+# --- 2. Approche INDIVIDUELLE (Ton idée : 3 violons x 2 sessions) ---
+# On filtre uniquement ton joueur test
+indiv_data = (
+    df[(df.scope == "test") & (df.criterion == criterion) & (df.session.isin([1, 2]))]
+    .pivot(index="violin", columns="session", values="rating")
+    .dropna()
+)
+
+# On a maintenant 3 lignes (Klimke, Levaggi, Stoppani)
+# On calcule les 3 différences intra-sujet
+indiv_diffs = indiv_data[2] - indiv_data[1]
+
+# Calcul de la variabilité propre au sujet
+indiv_sd = indiv_diffs.std(
+    ddof=1
+)  # ddof=1 pour estimateur non biaisé sur petit échantillon
+
+# ATTENTION : Avec N=3 différences, utiliser 1.96 est optimiste.
+# On devrait utiliser t(0.975, df=2) = 4.303
+# Mais pour comparer "à armes égales" avec le groupe, regardons d'abord le SD pur.
+indiv_sdd_strict = 4.303 * indiv_sd
+indiv_sdd_standard = 1.96 * indiv_sd
+
+print(f"--- Comparaison des Variabilités (Critère {criterion}) ---")
+
+print(f"1. Variabilité du GROUPE (N={len(group_diffs)})")
+print(f"   Ecart-type des différences : {group_sd:.3f}")
+print(f"   SDD (Seuil de détection)   : {group_sdd:.3f}")
+
+print(f"\n2. Variabilité INDIVIDUELLE (N={len(indiv_diffs)} violons)")
+print(f"   Différences S2-S1 : {indiv_diffs.values}")
+print(f"   Ecart-type individuel      : {indiv_sd:.3f}")
+print(f"   SDD (Standard 1.96)        : {indiv_sdd_standard:.3f}")
+print(f"   SDD (Strict t-Student)     : {indiv_sdd_strict:.3f}")
+
+# --- Verdict ---
+print("\n--- Analyse ---")
+if indiv_sd < group_sd:
+    print("Votre violoniste est PLUS PRÉCIS que la moyenne du groupe.")
+    print(
+        "Vous pourriez justifier d'utiliser son SDD individuel (Standard) pour détecter des changements plus subtils."
+    )
+else:
+    print("Votre violoniste est MOINS PRÉCIS (ou aussi variable) que le groupe.")
+    print("Mieux vaut utiliser le SDD du Groupe pour ne pas surestimer un effet.")
+```
+
+```{python}
+pivoted = df.pivot_table(
+    index=["scope", "violin", "player", "criterion"],
+    columns="session",
+    values="rating",
+    aggfunc="mean",  # Handles duplicate ratings if any
+)
+pivoted["diff"] = pivoted[2] - pivoted[1]
+pivoted = pivoted.reset_index()
+s_diff = pivoted.groupby("criterion")["diff"].std()
+sem = s_diff / np.sqrt(2)
+MDC = 1.96 * np.sqrt(2) * sem
+
+df_test = df[df["scope"] == "test"].copy()
+
+# Calculate Test Player's shift: Z_score(t2) - Z_score(baseline_mean)
+# Note: Z_score(baseline) is theoretically 0, but good to be explicit
+test_baseline = (
+    df_test[df_test["session"].isin([1, 2])]
+    .groupby(["violin", "criterion"])["rating"]
+    .mean()
+)
+test_t2 = (
+    df_test[df_test["session"] == 3].groupby(["violin", "criterion"])["rating"].mean()
+)
+
+# Calculate the Delta for the Test Player
+test_delta = (np.abs(test_t2 - test_baseline)).rename("delta")
+
+# 2. Join with the MDC thresholds you just calculated
+# MDC is currently a Series indexed by criterion
+results = pd.DataFrame(test_delta).join(MDC.rename("mdc_threshold"), on="criterion")
+
+# 3. Determine Significance
+results["is_significant"] = results["delta"].abs() > results["mdc_threshold"]
+
+# Display results
+print("Significant Changes for Test Player:")
+print(results)
+```
+
+
+```{python}
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+# 1. Prepare Data: Control Group, Baseline Sessions (1 & 2)
+df_reliability = (
+    df[(df.scope == "control") & (df.session.isin([1, 2]))]
+    .pivot_table(
+        index=["player", "violin", "criterion"], columns="session", values="rating"
+    )
+    .dropna()
+).reset_index()
+
+# Calculate Bland-Altman metrics
+df_reliability["mean"] = (df_reliability[1] + df_reliability[2]) / 2
+df_reliability["diff"] = df_reliability[2] - df_reliability[1]
+
+# Calculate Limits (MDC based)
+mean_diff = df_reliability["diff"].mean()
+sd_diff = df_reliability["diff"].std()
+upper_loa = mean_diff + 1.96 * sd_diff
+lower_loa = mean_diff - 1.96 * sd_diff
+
+# 2. Plot
+plt.figure(figsize=(8, 6))
+sns.scatterplot(
+    data=df_reliability,
+    x="mean",
+    y="diff",
+    style="criterion",
+    hue="violin",
+    alpha=0.7,
+    s=100,
+)
+
+# Add Lines
+plt.axhline(
+    mean_diff, color="black", linestyle="-", label=f"Mean Bias ({mean_diff:.2f})"
+)
+plt.axhline(upper_loa, color="red", linestyle="--", label=f"Upper Limit (+1.96 SD)")
+plt.axhline(lower_loa, color="red", linestyle="--", label=f"Lower Limit (-1.96 SD)")
+
+# Add a shaded region for the "Noise Zone"
+plt.fill_between([0, 10], lower_loa, upper_loa, color="gray", alpha=0.1)
+
+plt.title(
+    "Figure 1: Test-Retest Variability (Bland-Altman Plot)\nGray zone represents the non-significant change area (MDC)"
+)
+plt.xlabel("Mean Rating ((S1 + S2) / 2)")
+plt.ylabel("Difference (S2 - S1)")
+plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+plt.grid(True, linestyle=":", alpha=0.6)
+plt.tight_layout()
+plt.show()
+```
+
+
+```{python}
+df = pd.read_csv("../data/processed/ratings.csv")
+df = df.drop(columns=["Unnamed: 0"])
+df_reliability = (
+    df[(df.session.isin([1, 2]))]
+    .pivot_table(
+        index=["player", "violin", "criterion"], columns="session", values="rating"
+    )
+    .dropna()
+).reset_index()
+df_reliability["diff"] = df_reliability[2] - df_reliability[1]
+sns.histplot(
+    df_reliability["diff"],
+    kde=True,
+    # discrete=True,
+    bins=np.arange(-4, 4, 0.5),
+    color="gray",
+)
+```

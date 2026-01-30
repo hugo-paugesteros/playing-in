@@ -32,6 +32,7 @@ colors = {
 def plot(dataset_path: pathlib.Path):
     # --- 1. Load Data (Pandas) ---
     df = pd.read_csv(dataset_path)
+    df = df[df.condition == "blind"].reset_index()
 
     # --- 2. Compute difference ---
     pivoted = df.pivot_table(
@@ -40,9 +41,7 @@ def plot(dataset_path: pathlib.Path):
         values="rating",
         aggfunc="mean",  # Handles duplicate ratings if any
     )
-    df_diff = ((pivoted[3] - pivoted[1]) - (pivoted[2] - pivoted[1])).reset_index(
-        name="difference"
-    )
+    df_diff = (pivoted[3] - pivoted[1]).reset_index(name="difference")
 
     # --- 3. Plotting ---
     fig, axes = plt.subplots(
@@ -161,8 +160,8 @@ def plot(dataset_path: pathlib.Path):
     plt.tight_layout()
 
     # --- 4. Saving Figure ---
-    output_png = pathlib.Path("reports/figures/ratings-.png")
-    output_svg = pathlib.Path("reports/figures/ratings-.svg")
+    output_png = pathlib.Path("reports/figures/ratings-2.png")
+    output_svg = pathlib.Path("reports/figures/ratings-2.svg")
     output_png.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_png)
     plt.savefig(output_svg)

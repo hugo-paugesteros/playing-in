@@ -1,0 +1,289 @@
+
+```{python}
+df = pd.read_csv(PROCESSED_DATA_PATH)
+df = df[df.condition == "blind"].reset_index()
+# df = df.drop(columns=["phase", "condition"]).to_csv(
+#     "../data/processed/ratings_blind.csv"
+# )
+print(df[(df.scope == "test") & (df.criterion == "F")])
+```
+
+```{python}
+import argparse
+import pathlib
+import warnings
+from typing import Optional, Tuple
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import xarray as xr
+import pandas as pd
+import seaborn as sns
+
+PROCESSED_DATA_PATH = pathlib.Path("../data/processed/ratings.csv")
+
+# --- 1. Load Data (Pandas) ---
+df = pd.read_csv(PROCESSED_DATA_PATH)
+df = df[df.condition == "blind"].reset_index()
+
+ref_stats = (
+    df[df["phase"] == 1]
+    .groupby(["player", "criterion"])["rating"]
+    .agg(["mean", "std"])
+    .reset_index()
+)
+ref_stats.columns = ["player", "criterion", "ref_mean", "ref_std"]
+df_merged = pd.merge(df, ref_stats, on=["player", "criterion"], how="left")
+df_merged["z_score"] = (df_merged["rating"] - df_merged["ref_mean"]) / df_merged[
+    "ref_std"
+]
+
+
+pivoted = df_merged.pivot_table(
+    index=["scope", "violin", "player", "criterion"],
+    columns="session",
+    values="z_score",
+    aggfunc="mean",  # Handles duplicate ratings if any
+)
+pivoted["diff"] = pivoted[2] - pivoted[1]
+pivoted = pivoted.reset_index()
+s_diff = pivoted[pivoted.scope == "control"].groupby("criterion")["diff"].std()
+sem = s_diff / np.sqrt(2)
+MDC = 1.96 * np.sqrt(2) * sem
+
+mdc_df = MDC.rename("mdc").reset_index()
+df_merged = pd.merge(df_merged, mdc_df, on="criterion", how="left")
+
+control_group = pivoted[pivoted.scope == "control"]
+mean_drift = control_group.groupby("criterion")["diff"].mean()
+print(mean_drift)
+```
+
+```{python}
+s_diff = pivoted[pivoted.scope == "control"].groupby("criterion")["diff"].std()
+print(s_diff)
+
+s_diff = pivoted[pivoted.scope == "test"].groupby("criterion")["diff"].std()
+print(s_diff)
+```
+
+```{python}
+g = sns.catplot(
+    data=df,
+    x="scope",
+    y="rating",
+    row="violin",
+    col="criterion",
+    hue="session",
+    dodge=True,
+)
+```
+
+```{python}
+g = sns.catplot(
+    data=df_merged,
+    x="scope",
+    y="z_score",
+    row="violin",
+    col="criterion",
+    hue="session",
+    dodge=True,
+)
+# g.refline(y="mdc")
+```
+
+```{python}
+print(df)
+import statsmodels.formula.api as smf
+
+# 1. Prepare your data
+# Ensure your DataFrame 'df' has columns: 'Rating', 'Time', 'Violin', 'Rater'
+# Time should be categorical: 'T0', 'T1', 'T2'
+# Violin should be categorical: 'Control_1', 'Control_2', 'Test_Violin'
+
+# 2. Define the Formula
+# Rating ~ Time * Violin  <-- Checks for interaction (Did Test Violin change differently over Time?)
+# groups=df["Rater"]      <-- Accounts for repeated measures (each Rater is a group)
+
+model = smf.mixedlm(
+    "rating ~ C(session, Treatment(1)) * C(violin, Treatment('Levaggi'))",
+    data=df,
+    groups=df["player"],
+)
+
+# 3. Fit and Print
+result = model.fit()
+print(result.summary())
+```
+
+```{python}
+import statsmodels.formula.api as smf
+
+# Example: one criterion at a time, say 'P'
+df_p = df[df["criterion"] == "P"].copy()
+df_p["time"] = df_p["session"].map({1: "t0", 2: "t1", 3: "t2"})  # adapt to your mapping
+
+md = smf.mixedlm("rating ~ C(time) * C(violin)", df_p, groups=df_p["player"])
+mfit = md.fit()
+print(mfit.summary())
+```
+
+```{python}
+import statsmodels.formula.api as smf
+
+# 1. Filter for Control Group and specific criterion (e.g., 'F')
+df_control = (
+    df_merged[(df_merged["scope"] == "control") & (df_merged["criterion"] == "P")]
+    .copy()
+    .reset_index(drop=True)
+)
+df_control = df_control.dropna(subset=["rating", "violin", "session", "player"])
+
+# 2. Define the Model
+# Formula: Rating depends on Violin Type and Session
+# C(session): Treats session as categories (t1, t2, t3) rather than a number
+# groups="player": Accounts for the fact that each player provides multiple ratings
+model_a = smf.mixedlm(
+    "rating ~ C(violin) * C(session)",
+    data=df_control,
+    groups=df_control["player"],
+)
+
+# 3. Fit and Print
+result_a = model_a.fit()
+print(result_a.summary())
+
+r_matrix = np.zeros_like(result_a.fe_params)
+print(result_a.fe_params)
+idx_t3 = result_a.fe_params.index.get_loc("C(session)[T.3]")
+idx_t2 = result_a.fe_params.index.get_loc("C(session)[T.2]")
+
+# 3. Apply the weights for your hypothesis
+# Hypothesis: Coeff_T3 - 0.5 * Coeff_T2 = 0
+r_matrix[idx_t3] = 1
+r_matrix[idx_t2] = -0.5
+print(result_a.t_test(r_matrix[None, :]).summary())
+```
+
+```{python}
+df_crit = df_merged[df_merged["criterion"] == "T"].copy()
+df_crit = df_crit.dropna(subset=["z_score", "violin", "session", "player"])
+
+# 2. Define the Interaction Model
+# We add '* scope' to compare the Test Player's trend against the Controls
+model_b = smf.mixedlm(
+    "rating ~ C(violin, Treatment('Levaggi')) * C(session) * scope",
+    data=df_crit,
+    groups=df_crit["player"],
+)
+
+result_b = model_b.fit()
+print(result_b.summary())
+```
+
+```{python}
+# --- STEP 4: COMPARE TEST PLAYER TO MDC ---
+
+# 1. Get the Test Player's performance at t2 (Session 3) vs Baseline
+# We calculate the mean Z-score of t0/t1 to serve as the player's "Baseline Z"
+# (Ideally this should be near 0, but might vary slightly)
+df_test = df_merged[df_merged["scope"] == "test"].copy()
+
+# Calculate Test Player's shift: Z_score(t2) - Z_score(baseline_mean)
+# Note: Z_score(baseline) is theoretically 0, but good to be explicit
+test_baseline = (
+    df_test[df_test["phase"] == 1].groupby(["violin", "criterion"])["z_score"].mean()
+)
+test_t2 = (
+    df_test[df_test["session"] == 3].groupby(["violin", "criterion"])["z_score"].mean()
+)
+
+print(test_baseline)
+print(test_t2)
+
+# Calculate the Delta for the Test Player
+test_delta = (test_t2 - test_baseline - mean_drift).rename("delta_z")
+
+# 2. Join with the MDC thresholds you just calculated
+# MDC is currently a Series indexed by criterion
+results = pd.DataFrame(test_delta).join(MDC.rename("mdc_threshold"), on="criterion")
+
+# 3. Determine Significance
+results["is_significant"] = results["delta_z"].abs() > results["mdc_threshold"]
+
+# Display results
+print("Significant Changes for Test Player:")
+print(results)
+```
+
+```{python}
+g = sns.relplot(
+    data=df_merged,
+    x="session",
+    y="z_score",
+    hue="violin",
+    style="violin",
+    col="criterion",
+    kind="line",
+    markers=True,
+    dashes=False,
+    errorbar=("ci", 95),  # Shows 95% Confidence Interval
+    height=4,
+    aspect=1,
+)
+g.fig.suptitle("Global Trends: Violin Evolution (Normalized)", y=1.02)
+g.set_ylabels("Z-Score (Std Dev from Baseline)")
+```
+
+
+```{python}
+test_violin_data = df_merged[df_merged["violin"] == "Stoppani"]
+print(test_violin_data[test_violin_data["scope"] == "control"])
+
+
+# Plot the Control Group as a 'cloud' or error band
+sns.lineplot(
+    data=test_violin_data[test_violin_data["scope"] == "control"],
+    x="session",
+    y="z_score",
+    hue="criterion",
+    errorbar=("ci", 95),  # Shows 1 Standard Deviation spread of the group
+    # err_style="band",  # This creates the shaded region
+    legend=False,
+    # opacity=0.3,
+)
+
+# Plot the Test Player as distinct lines
+sns.lineplot(
+    data=test_violin_data[test_violin_data["scope"] == "test"],
+    x="session",
+    y="z_score",
+    hue="criterion",
+    linewidth=3,
+    marker="o",
+    # palette="bright",
+)
+```
+
+
+```{python}
+g = sns.catplot(
+    data=df_merged,
+    x="session",
+    y="z_score",
+    row="violin",
+    hue="scope",
+    # hue="session",
+    # style="violin",
+    col="criterion",
+    kind="point",
+    # markers=True,
+    # dashes=False,
+    errorbar=("ci", 95),  # Shows 95% Confidence Interval
+    height=4,
+    aspect=1,
+)
+g.fig.suptitle("Global Trends: Violin Evolution (Normalized)", y=1.02)
+g.set_ylabels("Z-Score (Std Dev from Baseline)")
+```

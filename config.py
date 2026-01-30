@@ -3,7 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # --- Custom styles ---
-mpl.style.use(["/home/hugo/Thèse/common/styles.mplstyle", "acta-acustica.mplstyle"])
+mpl.style.use(
+    [
+        "/home/hugo/Thèse/common/styles.mplstyle",
+        "/home/hugo/Thèse/playing-in/acta-acustica.mplstyle",
+    ]
+)
 
 # --- Width and Height ---
 mm = 1 / (2.54 * 10)

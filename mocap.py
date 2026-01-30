@@ -17,7 +17,11 @@ bad = [
     "stoppani_P1_tchaikovsky_3.csv",
 ]
 
-VIOLINS = ["klimke", "own", "stoppani"]
+VIOLINS = [
+    "klimke",
+    "own",
+    # "stoppani",
+]
 EXCERPTS = [
     "open_strings",
     "bach",
@@ -42,7 +46,7 @@ UNITS = {
     "skewness": "",
     "beta": "mm",
 }
-descriptor = "skewness"
+descriptor = "beta"
 
 base_path = Path("data/raw/mocap/")
 

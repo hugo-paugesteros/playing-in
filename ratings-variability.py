@@ -58,7 +58,8 @@ def plot(dataset_path: pathlib.Path):
         value_vars=["2-1", "3-1"],  # Columns to unpivot
         var_name="difference_type",  # Name for the new categorical column
         value_name="difference",  # Name for the new value column
-    ).dropna()
+    )
+    df_diff["difference_abs"] = np.abs(df_diff["difference"])
 
     control_players = sorted(df_diff[df_diff["scope"] == "control"]["player"].unique())
     test_players = df_diff[df_diff["scope"] == "test"]["player"].unique()
@@ -67,13 +68,15 @@ def plot(dataset_path: pathlib.Path):
     # --- 3. Plotting ---
     fig, axes = plt.subplots(
         nrows=len(CRITERION),
-        sharex=True,
+        ncols=2,
+        sharex="col",
         sharey=True,
+        width_ratios=[len(player_order), 1],
     )
 
     # A. Main Grid (Violin vs Violinist)
     for i, criterion in enumerate(CRITERION):
-        ax = axes[i]
+        ax = axes[i, 0]
 
         # Filter data for this specific cell
         subset = df_diff[
@@ -97,76 +100,42 @@ def plot(dataset_path: pathlib.Path):
             linestyle="none",
         )
 
-        # Filter data for this specific cell
-        subset = df_diff[
-            (df_diff["criterion"] == criterion) & (df_diff["difference_type"] == "3-1")
-        ]
-
-        # Stripplot
         sns.pointplot(
             data=subset,
-            x="player",
-            y="difference",
-            hue="violin",
-            order=player_order,
+            # x="violin",
+            y="difference_abs",
+            # hue="violin",
+            # order=player_order,
             # alpha=0.2,
-            palette=colors[1::2],
+            palette=colors[::2],
             # order=["control", "test"],
-            hue_order=["Klimke", "Levaggi", "Stoppani"],
+            # order=["Klimke", "Levaggi", "Stoppani"],
+            # hue_order=["Klimke", "Levaggi", "Stoppani"],
             # legend=False,
-            ax=ax,
-            dodge=0.3,
+            ax=axes[i, 1],
+            # dodge=0.3,
             linestyle="none",
         )
+
         ax.get_legend().remove()
         ax.set_ylabel(f"{CRITERION_MAP[criterion]}\nRating difference")
 
     xtick_labels = [str(i) for i in range(1, len(control_players) + 1)] + ["Test"]
-    axes[-1].set_xticks(range(len(player_order)))
-    axes[-1].set_xticklabels(xtick_labels)
+    axes[-1, 0].set_xticks(range(len(player_order)))
+    axes[-1, 0].set_xticklabels(xtick_labels)
 
-    # # --- 3.2 Row 4 : Differences ---
-    # for col, criteria in enumerate(CRITERION):
-    #     ax = axes[-1, col]
-    #     subset = df_diff[(df_diff["criterion"] == criteria)]
-    #     sns.pointplot(
-    #         data=subset,
-    #         x="scope",
-    #         y="difference",
-    #         hue="violin",
-    #         palette=[colors["klimke"], colors["levaggi"], colors["stoppani"]],
-    #         ax=ax,
-    #         linestyle="none",
-    #         errorbar=ci,
-    #         dodge=0.4,
-    #     )
-    #     ax.get_legend().remove()
-    #     if col == 0:
-    #         ax.set_ylabel("Rating difference")
-    #     else:
-    #         ax.set_ylabel("")
-
-    #     ax.set_xlabel("")
-
-    # for ax in axes.flat:
-    #     ax.yaxis.set_major_locator(mpl.ticker.MultipleLocator(1))
+    for ax in axes.flat:
+        ax.yaxis.set_major_locator(mpl.ticker.MultipleLocator(1))
 
     # --- 3.4 Legends ---
-    target_ax_top = axes[-1]
+    target_ax_top = axes[0, 0]
     handles_top, labels_top = target_ax_top.get_legend_handles_labels()
-    fig.legend(
-        handles_top[:6],
-        [
-            "Klimke / 2-1",
-            "Levaggi / 2-1",
-            "Stoppani / 2-1",
-            "Klimke / 3-1",
-            "Levaggi / 3-1",
-            "Stoppani / 3-1",
-        ],
-        title="Violin / Session",
+    axes[1, 1].legend(
+        handles_top[:3],
+        labels_top[:3],
+        title="Violin",
         loc="center left",
-        bbox_to_anchor=(1.02, 0.5),
+        bbox_to_anchor=(1.3, 0.5),
         borderaxespad=0,
     )
 
